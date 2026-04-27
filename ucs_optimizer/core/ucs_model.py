@@ -34,8 +34,7 @@ class GradientBoostingUCSModel:
         return result_dir
         
     def load_data(self, file_path):
-        """加载Excel数据并返回特征和目标变量"""
-        # 检查是否为文件对象（Streamlit上传的文件）
+        """加载数据（支持文件路径和Streamlit文件对象）"""
         if hasattr(file_path, 'read'):
             # 对于文件对象，直接读取
             df = pd.read_excel(file_path, engine='openpyxl')
@@ -45,11 +44,22 @@ class GradientBoostingUCSModel:
                 raise FileNotFoundError(f"数据文件不存在: {file_path}")
             df = pd.read_excel(file_path, engine='openpyxl')
         
+        # 检查列名是否正确识别（如果列名看起来像数据，尝试重新读取）
+        if all(col.startswith('Unnamed:') for col in df.columns):
+            # 如果所有列都是Unnamed，尝试将第一行作为列名
+            if hasattr(file_path, 'read'):
+                # 对于文件对象，需要重置文件指针
+                file_path.seek(0)
+                df = pd.read_excel(file_path, engine='openpyxl', header=0)
+            else:
+                # 对于文件路径，直接重新读取
+                df = pd.read_excel(file_path, engine='openpyxl', header=0)
+        
         # 检查目标列是否存在
         target_column = 'UCS (Mpa)'
         if target_column not in df.columns:
             # 尝试其他可能的命名
-            possible_columns = ['UCS', 'UCS (MPa)', '抗压强度']
+            possible_columns = ['UCS', 'UCS (MPa)', '抗压强度', '抗压强度值', 'UCS值', '强度', '水泥强度']
             found = False
             for col in possible_columns:
                 if col in df.columns:

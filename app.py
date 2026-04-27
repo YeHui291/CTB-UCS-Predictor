@@ -103,44 +103,51 @@ elif selected_page == "模型训练":
         # 读取数据
         df = pd.read_excel(uploaded_file)
         
-        # 显示可编辑的数据表格
-        st.subheader("训练数据（可编辑）")
-        edited_df = st.data_editor(df, use_container_width=True)
+        # 检查是否包含 UCS 相关列
+        ucs_columns = ['UCS', 'UCS (MPa)', 'UCS (Mpa)', '抗压强度', '抗压强度值', 'UCS值', '强度', '水泥强度']
+        has_ucs = any(col in df.columns for col in ucs_columns)
+        
+        if not has_ucs:
+            st.error(f"数据中未找到UCS相关列，请检查数据文件。可用列名: {df.columns.tolist()}")
+        else:
+            # 显示可编辑的数据表格
+            st.subheader("训练数据（可编辑）")
+            edited_df = st.data_editor(df, use_container_width=True)
 
-        # 训练参数
-        st.subheader("训练参数")
-        test_size = st.slider("测试集比例", 0.1, 0.5, 0.2)
-        random_state = st.number_input("随机种子", 0, 1000, 42)
+            # 训练参数
+            st.subheader("训练参数")
+            test_size = st.slider("测试集比例", 0.1, 0.5, 0.2)
+            random_state = st.number_input("随机种子", 0, 1000, 42)
 
-        # 训练按钮
-        if st.button("开始训练"):
-            with st.spinner("正在训练模型..."):
-                # 保存编辑后的数据到临时文件
-                import tempfile
-                import os
-                
-                with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-                    tmp_path = tmp.name
-                
-                edited_df.to_excel(tmp_path, index=False)
-                
-                optimizer = UCSOptimizer()
-                # 训练模型
-                model, metrics = optimizer.train(
-                    data_path=tmp_path,
-                    test_size=test_size,
-                    random_state=random_state
-                )
-                
-                # 清理临时文件
-                os.unlink(tmp_path)
+            # 训练按钮
+            if st.button("开始训练"):
+                with st.spinner("正在训练模型..."):
+                    # 保存编辑后的数据到临时文件
+                    import tempfile
+                    import os
+                    
+                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+                        tmp_path = tmp.name
+                    
+                    edited_df.to_excel(tmp_path, index=False)
+                    
+                    optimizer = UCSOptimizer()
+                    # 训练模型
+                    model, metrics = optimizer.train(
+                        data_path=tmp_path,
+                        test_size=test_size,
+                        random_state=random_state
+                    )
+                    
+                    # 清理临时文件
+                    os.unlink(tmp_path)
 
-            st.success("模型训练完成！")
+                st.success("模型训练完成！")
 
-            # 显示训练结果
-            st.subheader("训练结果")
-            st.write(f"R² 评分: {metrics['r2']:.2f}")
-            st.write(f"均方误差: {metrics['mse']:.2f}")
+                # 显示训练结果
+                st.subheader("训练结果")
+                st.write(f"R² 评分: {metrics['r2']:.2f}")
+                st.write(f"均方误差: {metrics['mse']:.2f}")
 
 # 强度预测页面
 elif selected_page == "强度预测":
@@ -179,8 +186,10 @@ elif selected_page == "强度预测":
                     edited_df.to_excel(tmp_path, index=False)
                     
                     optimizer = UCSOptimizer()
-                    # 先训练一个模型
-                    model, metrics = optimizer.train(data_path=tmp_path)
+                    # 使用示例数据训练模型
+                    import os
+                    sample_data = os.path.join(os.path.dirname(__file__), "ucs_optimizer", "data", "sample_cement_data.xlsx")
+                    model, metrics = optimizer.train(data_path=sample_data)
                     # 然后预测
                     predictions = optimizer.predict(input_data=tmp_path)
                     
