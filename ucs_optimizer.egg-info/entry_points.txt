@@ -1,2 +1,0 @@
-[console_scripts]
-ucs-optimizer = ucs_optimizer.cli.main:main
