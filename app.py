@@ -240,7 +240,7 @@ elif selected_page == "模型训练":
     # 文件上传卡片
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("📁 数据上传")
-    uploaded_file = st.file_uploader("上传训练数据文件", type=["xlsx"])
+    uploaded_file = st.file_uploader("上传训练数据文件", type=["xlsx"], key="train_uploader")
     st.markdown('</div>', unsafe_allow_html=True)
     
     if uploaded_file is not None:
@@ -396,7 +396,7 @@ elif selected_page == "强度预测":
         # 文件上传卡片
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📁 数据上传")
-        data_file = st.file_uploader("上传预测数据文件", type=["xlsx"])
+        data_file = st.file_uploader("上传预测数据文件", type=["xlsx"], key="predict_uploader")
         
         if data_file:
             st.markdown('<div class="success-message">', unsafe_allow_html=True)
@@ -556,7 +556,7 @@ elif selected_page == "LCA 计算":
     # 文件上传卡片
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("📁 LCI 数据上传")
-    lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"])
+    lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_1")
     
     if lci_file:
         st.markdown('<div class="success-message">', unsafe_allow_html=True)
@@ -684,8 +684,8 @@ elif selected_page == "完整分析":
     
     # 上传数据文件
     st.subheader("📁 数据上传")
-    cement_file = st.file_uploader("上传水泥强度数据文件", type=["xlsx"])
-    lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"])
+    cement_file = st.file_uploader("上传水泥强度数据文件", type=["xlsx"], key="cement_uploader_1")
+    lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_1")
     
     if cement_file and lci_file:
         st.markdown('<div class="success-message">', unsafe_allow_html=True)
@@ -867,8 +867,8 @@ elif selected_page == "完整分析":
     
     if analysis_method == "文件上传":
         # 上传数据文件
-        cement_file = st.file_uploader("上传水泥数据文件", type=["xlsx"])
-        lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"])
+        cement_file = st.file_uploader("上传水泥数据文件", type=["xlsx"], key="cement_uploader_2")
+        lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_2")
         
         if cement_file and lci_file:
             st.success("文件上传成功！")
@@ -925,7 +925,7 @@ elif selected_page == "完整分析":
         st.subheader("手动输入分析参数")
         
         # 上传 LCI 数据文件（仍然需要）
-        lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"])
+        lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_3")
         
         if lci_file:
             st.success("LCI 数据文件上传成功！")
