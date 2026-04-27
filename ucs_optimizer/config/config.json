@@ -1,0 +1,39 @@
+{
+    "model": {
+        "default_params": {
+            "n_estimators": 100,
+            "learning_rate": 0.1,
+            "max_depth": 3,
+            "min_samples_split": 2,
+            "min_samples_leaf": 1,
+            "subsample": 1.0,
+            "random_state": 42,
+            "loss": "squared_error"
+        },
+        "save_path": "models/ucs_model.pkl"
+    },
+    "lca": {
+        "default_values": {
+            "carbon_cement": 0.82,
+            "energy_cement": 115,
+            "cost_cement": 0.084,
+            "cost_water": 0.001
+        },
+        "total_mass": 1000
+    },
+    "visualization": {
+        "save_dir": "visualizations",
+        "dpi": 300,
+        "figure_size": {
+            "model_evaluation": [8, 6],
+            "lca_metrics": [18, 12],
+            "ucs_vs_lca": [24, 8],
+            "correlation_matrix": [12, 10]
+        }
+    },
+    "paths": {
+        "data_dir": "data",
+        "results_dir": "results",
+        "models_dir": "models"
+    }
+}
