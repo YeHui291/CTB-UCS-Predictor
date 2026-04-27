@@ -100,10 +100,12 @@ elif selected_page == "模型训练":
     if uploaded_file is not None:
         st.success("文件上传成功！")
         
-        # 显示数据预览
+        # 读取数据
         df = pd.read_excel(uploaded_file)
-        st.subheader("数据预览")
-        st.dataframe(df.head())
+        
+        # 显示可编辑的数据表格
+        st.subheader("训练数据（可编辑）")
+        edited_df = st.data_editor(df, use_container_width=True)
 
         # 训练参数
         st.subheader("训练参数")
@@ -113,13 +115,25 @@ elif selected_page == "模型训练":
         # 训练按钮
         if st.button("开始训练"):
             with st.spinner("正在训练模型..."):
+                # 保存编辑后的数据到临时文件
+                import tempfile
+                import os
+                
+                with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+                    tmp_path = tmp.name
+                
+                edited_df.to_excel(tmp_path, index=False)
+                
                 optimizer = UCSOptimizer()
                 # 训练模型
                 model, metrics = optimizer.train(
-                    data_path=uploaded_file,
+                    data_path=tmp_path,
                     test_size=test_size,
                     random_state=random_state
                 )
+                
+                # 清理临时文件
+                os.unlink(tmp_path)
 
             st.success("模型训练完成！")
 
@@ -145,19 +159,33 @@ elif selected_page == "强度预测":
         if data_file:
             st.success("文件上传成功！")
             
-            # 显示数据预览
+            # 读取数据
             df = pd.read_excel(data_file)
-            st.subheader("预测数据预览")
-            st.dataframe(df.head())
+            
+            # 显示可编辑的数据表格
+            st.subheader("预测数据（可编辑）")
+            edited_df = st.data_editor(df, use_container_width=True)
             
             # 预测按钮
             if st.button("开始预测"):
                 with st.spinner("正在预测..."):
+                    # 保存编辑后的数据到临时文件
+                    import tempfile
+                    import os
+                    
+                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+                        tmp_path = tmp.name
+                    
+                    edited_df.to_excel(tmp_path, index=False)
+                    
                     optimizer = UCSOptimizer()
                     # 先训练一个模型
-                    model, metrics = optimizer.train(data_path=data_file)
+                    model, metrics = optimizer.train(data_path=tmp_path)
                     # 然后预测
-                    predictions = optimizer.predict(input_data=data_file)
+                    predictions = optimizer.predict(input_data=tmp_path)
+                    
+                    # 清理临时文件
+                    os.unlink(tmp_path)
                     
                 st.success("预测完成！")
                 
@@ -357,6 +385,13 @@ elif selected_page == "完整分析":
         if cement_file and lci_file:
             st.success("文件上传成功！")
             
+            # 读取水泥数据
+            df = pd.read_excel(cement_file)
+            
+            # 显示可编辑的数据表格
+            st.subheader("水泥数据（可编辑）")
+            edited_df = st.data_editor(df, use_container_width=True)
+            
             # 分析参数
             st.subheader("分析参数")
             test_size = st.slider("测试集比例", 0.1, 0.5, 0.2)
@@ -365,10 +400,19 @@ elif selected_page == "完整分析":
             # 分析按钮
             if st.button("开始完整分析"):
                 with st.spinner("正在进行完整分析..."):
+                    # 保存编辑后的数据到临时文件
+                    import tempfile
+                    import os
+                    
+                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+                        tmp_path = tmp.name
+                    
+                    edited_df.to_excel(tmp_path, index=False)
+                    
                     optimizer = UCSOptimizer()
                     # 先训练模型
                     model, metrics = optimizer.train(
-                        data_path=cement_file,
+                        data_path=tmp_path,
                         test_size=test_size,
                         random_state=random_state
                     )
@@ -376,8 +420,11 @@ elif selected_page == "完整分析":
                     optimizer.load_lci_data(lci_file)
                     # 运行完整分析
                     lca_results, lca_metrics = optimizer.run_full_analysis(
-                        data_file=cement_file
+                        data_file=tmp_path
                     )
+                    
+                    # 清理临时文件
+                    os.unlink(tmp_path)
                     
                 st.success("分析完成！")
                 
