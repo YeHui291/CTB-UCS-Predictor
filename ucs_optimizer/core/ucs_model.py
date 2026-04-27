@@ -35,10 +35,15 @@ class GradientBoostingUCSModel:
         
     def load_data(self, file_path):
         """加载Excel数据并返回特征和目标变量"""
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"数据文件不存在: {file_path}")
-        
-        df = pd.read_excel(file_path, engine='openpyxl')
+        # 检查是否为文件对象（Streamlit上传的文件）
+        if hasattr(file_path, 'read'):
+            # 对于文件对象，直接读取
+            df = pd.read_excel(file_path, engine='openpyxl')
+        else:
+            # 对于文件路径，检查是否存在
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"数据文件不存在: {file_path}")
+            df = pd.read_excel(file_path, engine='openpyxl')
         
         # 检查目标列是否存在
         target_column = 'UCS (Mpa)'

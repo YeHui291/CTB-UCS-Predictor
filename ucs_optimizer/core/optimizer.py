@@ -69,6 +69,53 @@ class UCSOptimizer:
         """计算LCA指标"""
         return self.lca_calculator.calculate_lca(df, total_mass)
     
+    def train(self, data_path, test_size=0.2, random_state=42):
+        """训练UCS预测模型（支持Streamlit文件对象）"""
+        # 加载数据
+        X, y, feature_names = self.ucs_model.load_data(data_path)
+        print(f"成功加载数据，特征数量: {X.shape[1]}, 样本数量: {X.shape[0]}")
+        
+        # 划分训练集和测试集
+        from sklearn.model_selection import train_test_split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+        print(f"数据集划分完成: 训练集 {X_train.shape[0]} 样本, 测试集 {X_test.shape[0]} 样本")
+        
+        # 训练模型
+        model = self.ucs_model.train_model(X_train, y_train)
+        
+        # 评估模型
+        metrics = self.ucs_model.evaluate(X_test, y_test)
+        
+        return model, metrics
+    
+    def predict(self, input_data, model_path=None):
+        """预测UCS值（支持Streamlit文件对象）"""
+        # 加载数据
+        if hasattr(input_data, 'read'):
+            df = pd.read_excel(input_data, engine='openpyxl')
+        else:
+            df = pd.read_excel(input_data, engine='openpyxl')
+        
+        # 提取特征
+        target_column = 'UCS (Mpa)'
+        if target_column not in df.columns:
+            possible_columns = ['UCS', 'UCS (MPa)', '抗压强度']
+            for col in possible_columns:
+                if col in df.columns:
+                    target_column = col
+                    break
+        
+        X = df.drop(target_column, axis=1) if target_column in df.columns else df
+        
+        # 预测
+        predictions = self.ucs_model.predict(X)
+        
+        # 创建结果DataFrame
+        result_df = df.copy()
+        result_df['Predicted UCS'] = predictions
+        
+        return result_df
+    
     def run_full_analysis(self, data_file, lci_file=None, model_path=None, params=None):
         """运行完整的分析流程"""
         # 加载LCI数据（如果提供）
@@ -82,7 +129,10 @@ class UCSOptimizer:
             self.train_ucs_model(data_file, params)
         
         # 加载原始数据
-        df = pd.read_excel(data_file, engine='openpyxl')
+        if hasattr(data_file, 'read'):
+            df = pd.read_excel(data_file, engine='openpyxl')
+        else:
+            df = pd.read_excel(data_file, engine='openpyxl')
         
         # 预测UCS值（如果模型已训练）
         if hasattr(self.ucs_model, 'full_pipeline') and self.ucs_model.full_pipeline:
