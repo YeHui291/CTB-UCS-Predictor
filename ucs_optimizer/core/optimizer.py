@@ -96,7 +96,7 @@ class UCSOptimizer:
         else:
             df = pd.read_excel(input_data, engine='openpyxl')
         
-        # 提取特征
+        # 提取特征 - 使用所有12个特征变量
         target_column = 'UCS (Mpa)'
         if target_column not in df.columns:
             possible_columns = ['UCS', 'UCS (MPa)', '抗压强度']
@@ -105,6 +105,7 @@ class UCSOptimizer:
                     target_column = col
                     break
         
+        # 使用所有12个特征变量
         X = df.drop(target_column, axis=1) if target_column in df.columns else df
         
         # 预测
