@@ -69,10 +69,17 @@ class UCSOptimizer:
         """计算LCA指标"""
         return self.lca_calculator.calculate_lca(df, total_mass)
     
-    def train(self, data_path, test_size=0.2, random_state=42):
-        """训练UCS预测模型（支持Streamlit文件对象）"""
+    def train(self, data_path, test_size=0.2, random_state=42, target_column=None):
+        """训练UCS预测模型（支持Streamlit文件对象）
+        
+        Args:
+            data_path: 数据文件路径或Streamlit文件对象
+            test_size: 测试集比例
+            random_state: 随机种子
+            target_column: 手动指定的目标列名
+        """
         # 加载数据
-        X, y, feature_names = self.ucs_model.load_data(data_path)
+        X, y, feature_names = self.ucs_model.load_data(data_path, target_column=target_column)
         print(f"成功加载数据，特征数量: {X.shape[1]}, 样本数量: {X.shape[0]}")
         
         # 划分训练集和测试集

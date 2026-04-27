@@ -33,42 +33,94 @@ class GradientBoostingUCSModel:
         self.result_dir = result_dir
         return result_dir
         
-    def load_data(self, file_path):
-        """加载数据（支持文件路径和Streamlit文件对象）"""
-        if hasattr(file_path, 'read'):
-            # 对于文件对象，直接读取
-            df = pd.read_excel(file_path, engine='openpyxl')
-        else:
-            # 对于文件路径，检查是否存在
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"数据文件不存在: {file_path}")
-            df = pd.read_excel(file_path, engine='openpyxl')
+    def load_data(self, file_path, target_column=None):
+        """加载数据（支持文件路径和Streamlit文件对象）
         
-        # 检查列名是否正确识别（如果列名看起来像数据，尝试重新读取）
-        if all(col.startswith('Unnamed:') for col in df.columns):
-            # 如果所有列都是Unnamed，尝试将第一行作为列名
+        Args:
+            file_path: 文件路径或Streamlit文件对象
+            target_column: 手动指定的目标列名
+        """
+        print("\n=== 数据加载开始 ===")
+        
+        # 首先尝试 header=0（最常见的情况）
+        try:
             if hasattr(file_path, 'read'):
-                # 对于文件对象，需要重置文件指针
                 file_path.seek(0)
                 df = pd.read_excel(file_path, engine='openpyxl', header=0)
             else:
-                # 对于文件路径，直接重新读取
                 df = pd.read_excel(file_path, engine='openpyxl', header=0)
-        
-        # 检查目标列是否存在
-        target_column = 'UCS (Mpa)'
-        if target_column not in df.columns:
-            # 尝试其他可能的命名
-            possible_columns = ['UCS', 'UCS (MPa)', '抗压强度', '抗压强度值', 'UCS值', '强度', '水泥强度']
-            found = False
-            for col in possible_columns:
-                if col in df.columns:
-                    target_column = col
-                    found = True
-                    break
             
-            if not found:
-                raise ValueError(f"数据中未找到UCS相关列，请检查数据文件。可用列名: {df.columns.tolist()}")
+            # 清理列名
+            df.columns = [col.strip() if isinstance(col, str) else col for col in df.columns]
+            
+            print(f"[SUCCESS] Header=0 读取成功")
+            print(f"列名: {df.columns.tolist()}")
+            print(f"数据形状: {df.shape}")
+            
+        except Exception as e:
+            print(f"Header=0 读取失败: {e}")
+            
+            # 尝试多种方式读取文件，确保列名正确识别
+            best_df = None
+            best_columns = []
+            
+            # 尝试不同的header设置（更多位置）
+            for header in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+                try:
+                    if hasattr(file_path, 'read'):
+                        file_path.seek(0)
+                        df_temp = pd.read_excel(file_path, engine='openpyxl', header=header)
+                    else:
+                        df_temp = pd.read_excel(file_path, engine='openpyxl', header=header)
+                    
+                    # 清理列名
+                    df_temp.columns = [col.strip() if isinstance(col, str) else col for col in df_temp.columns]
+                    
+                    # 检查列名质量
+                    non_unnamed_count = sum(1 for col in df_temp.columns if not str(col).startswith('Unnamed:'))
+                    
+                    if non_unnamed_count > len(best_columns):
+                        best_df = df_temp
+                        best_columns = df_temp.columns.tolist()
+                        print(f"  Header={header} 找到 {non_unnamed_count} 个有效列名")
+                        
+                except Exception as e2:
+                    print(f"  Header={header} 读取失败: {e2}")
+                    continue
+            
+            # 如果找到了较好的列名，使用它
+            if best_df is not None:
+                df = best_df
+                print(f"[SUCCESS] 使用列名: {best_columns}")
+            else:
+                # 最后的尝试 - 不设置header，让pandas自动处理
+                print("尝试不设置header...")
+                if hasattr(file_path, 'read'):
+                    file_path.seek(0)
+                    df = pd.read_excel(file_path, engine='openpyxl', header=None)
+                else:
+                    df = pd.read_excel(file_path, engine='openpyxl', header=None)
+                
+                # 尝试将第一行作为列名
+                try:
+                    df.columns = df.iloc[0]
+                    df = df[1:]
+                    print(f"[SUCCESS] 将第一行作为列名")
+                    print(f"列名: {df.columns.tolist()}")
+                except Exception as e3:
+                    print(f"  将第一行作为列名失败: {e3}")
+        
+        # 清理列名（去除空格和特殊字符）
+        df.columns = [str(col).strip() if isinstance(col, (str, int, float)) else col for col in df.columns]
+        print(f"最终列名: {df.columns.tolist()}")
+        print(f"=== 数据加载结束 ===\n")
+        
+        # 使用AI辅助识别列名
+        if target_column is not None:
+            target_column = self._ai_column_recognition(df, target_column)
+        else:
+            # 自动检测UCS列
+            target_column = self._ai_detect_ucs_column(df)
         
         # 处理目标变量中的缺失值
         df = df.dropna(subset=[target_column])
@@ -78,6 +130,270 @@ class GradientBoostingUCSModel:
         y = df[target_column]
         
         return X, y, df.columns.tolist()
+    
+    def _ai_column_recognition(self, df, target_column):
+        """使用AI辅助识别列名
+        
+        Args:
+            df: 数据框
+            target_column: 目标列名
+            
+        Returns:
+            识别到的目标列名
+        """
+        # 0. 打印详细调试信息
+        print(f"\n=== AI 列名识别开始 ===")
+        print(f"目标列: {target_column}")
+        print(f"可用列名: {df.columns.tolist()}")
+        print(f"数据形状: {df.shape}")
+        
+        # 1. 尝试精确匹配
+        if target_column in df.columns:
+            print(f"[SUCCESS] 精确匹配成功: {target_column}")
+            print(f"=== AI 列名识别结束 ===\n")
+            return target_column
+        
+        # 2. 尝试不区分大小写匹配
+        for col in df.columns:
+            if str(col).lower() == str(target_column).lower():
+                print(f"[SUCCESS] 不区分大小写匹配成功: {col}")
+                print(f"=== AI 列名识别结束 ===\n")
+                return col
+        
+        # 3. 尝试部分匹配
+        for col in df.columns:
+            col_str = str(col).lower()
+            target_str = str(target_column).lower()
+            if target_str in col_str:
+                print(f"[SUCCESS] 部分匹配成功: {col}")
+                print(f"=== AI 列名识别结束 ===\n")
+                return col
+        
+        # 4. 尝试常用UCS列名
+        possible_columns = [
+            'UCS', 'UCS (MPa)', 'UCS (Mpa)', '抗压强度', '抗压强度值', 'UCS值', '强度', '水泥强度',
+            'ucs', 'Ucs', 'strength', 'Strength', 'compressive strength', 'Compressive Strength',
+            '抗压强度(MPa)', 'UCS值(MPa)', '抗压强度值(MPa)', '强度值', 'cement strength',
+            'Cement Strength', 'compressive', 'Compressive', 'strength value', 'Strength Value',
+            '抗压', '压强', '压力', 'strength', 'compressive', '固化强度', '硬化强度'
+        ]
+        
+        for col in possible_columns:
+            if col in df.columns:
+                print(f"[SUCCESS] 常用列名匹配成功: {col}")
+                print(f"=== AI 列名识别结束 ===\n")
+                return col
+        
+        # 5. 尝试部分匹配常用列名
+        for col in df.columns:
+            col_str = str(col).lower()
+            if any(keyword in col_str for keyword in ['ucs', '抗压', '强度', 'strength', 'compressive', '压强', '压力']):
+                print(f"[SUCCESS] 部分匹配常用列名成功: {col}")
+                print(f"=== AI 列名识别结束 ===\n")
+                return col
+        
+        # 6. 基于数据特征的智能识别
+        best_match = None
+        highest_score = 0
+        
+        print("\n--- 基于数据特征的智能识别 ---")
+        for col in df.columns:
+            # 计算列与UCS的匹配分数
+            score = self._calculate_column_score(str(col))
+            
+            # 同时考虑数据特征
+            if df[col].dtype in [np.float64, np.int64]:
+                # 尝试计算统计值
+                try:
+                    col_min = df[col].min()
+                    col_max = df[col].max()
+                    col_mean = df[col].mean()
+                    col_std = df[col].std()
+                    
+                    print(f"列 '{col}': 类型={df[col].dtype}, 最小值={col_min:.2f}, 最大值={col_max:.2f}, 平均值={col_mean:.2f}")
+                    
+                    # UCS值通常在0-100之间
+                    if 0 <= col_min and col_max <= 100:
+                        score += 0.3
+                        print(f"  +0.3 分数: 值范围合适")
+                    
+                    # UCS值通常为正数
+                    if col_min >= 0:
+                        score += 0.2
+                        print(f"  +0.2 分数: 值为正数")
+                    
+                    # UCS值通常有一定的范围
+                    if col_max - col_min > 5:
+                        score += 0.1
+                        print(f"  +0.1 分数: 值范围足够大")
+                    
+                    # UCS值通常有一定的波动性
+                    if col_std > 0.5:
+                        score += 0.1
+                        print(f"  +0.1 分数: 值有波动性")
+                except Exception as e:
+                    print(f"列 '{col}': 计算统计值失败: {e}")
+            else:
+                print(f"列 '{col}': 类型={df[col].dtype} (非数值类型)")
+            
+            print(f"  总分: {score:.2f}")
+            
+            if score > highest_score:
+                highest_score = score
+                best_match = col
+        
+        if best_match:
+            print(f"\n[SUCCESS] 基于数据特征的智能识别成功: {best_match} (分数: {highest_score:.2f})")
+            print(f"=== AI 列名识别结束 ===\n")
+            return best_match
+        
+        # 7. 尝试所有数值列
+        numeric_columns = []
+        for col in df.columns:
+            if df[col].dtype in [np.float64, np.int64]:
+                numeric_columns.append(col)
+        
+        print(f"\n--- 尝试数值列 ---")
+        print(f"找到 {len(numeric_columns)} 个数值列: {numeric_columns}")
+        
+        if numeric_columns:
+            # 选择最后一个数值列（通常UCS在最后）
+            best_match = numeric_columns[-1]
+            print(f"[SUCCESS] 选择最后一个数值列: {best_match}")
+            print(f"=== AI 列名识别结束 ===\n")
+            return best_match
+        
+        # 8. 尝试所有列，不管类型
+        print(f"\n--- 尝试所有列 ---")
+        print(f"总列数: {len(df.columns)}")
+        
+        if len(df.columns) > 0:
+            # 选择最后一列
+            best_match = df.columns[-1]
+            print(f"[SUCCESS] 选择最后一列: {best_match}")
+            print(f"=== AI 列名识别结束 ===\n")
+            return best_match
+        
+        print(f"=== AI 列名识别失败 ===\n")
+        raise ValueError(f"指定的目标列 '{target_column}' 不存在于数据中。可用列名: {df.columns.tolist()}")
+    
+    def _ai_detect_ucs_column(self, df):
+        """使用AI自动检测UCS列
+        
+        Args:
+            df: 数据框
+            
+        Returns:
+            检测到的UCS列名
+        """
+        # 0. 打印调试信息
+        print("[INFO] 尝试自动检测UCS列")
+        print(f"可用列名: {df.columns.tolist()}")
+        
+        # 1. 尝试常用UCS列名
+        possible_columns = [
+            'UCS', 'UCS (MPa)', 'UCS (Mpa)', '抗压强度', '抗压强度值', 'UCS值', '强度', '水泥强度',
+            'ucs', 'Ucs', 'strength', 'Strength', 'compressive strength', 'Compressive Strength',
+            '抗压强度(MPa)', 'UCS值(MPa)', '抗压强度值(MPa)', '强度值', 'cement strength',
+            'Cement Strength', 'compressive', 'Compressive', 'strength value', 'Strength Value'
+        ]
+        
+        for col in possible_columns:
+            if col in df.columns:
+                print(f"[SUCCESS] 常用列名匹配成功: {col}")
+                return col
+        
+        # 2. 尝试部分匹配
+        for col in df.columns:
+            col_str = str(col).lower()
+            if any(keyword in col_str for keyword in ['ucs', '抗压', '强度', 'strength', 'compressive']):
+                print(f"[SUCCESS] 部分匹配常用列名成功: {col}")
+                return col
+        
+        # 3. 基于数据特征的智能识别
+        best_match = None
+        highest_score = 0
+        
+        for col in df.columns:
+            # 计算列与UCS的匹配分数
+            score = self._calculate_column_score(str(col))
+            
+            # 同时考虑数据特征
+            if df[col].dtype in [np.float64, np.int64]:
+                # 尝试计算统计值
+                try:
+                    col_min = df[col].min()
+                    col_max = df[col].max()
+                    col_mean = df[col].mean()
+                    
+                    # UCS值通常在0-100之间
+                    if 0 <= col_min and col_max <= 100:
+                        score += 0.3
+                    
+                    # UCS值通常为正数
+                    if col_min >= 0:
+                        score += 0.2
+                    
+                    # UCS值通常有一定的范围
+                    if col_max - col_min > 5:
+                        score += 0.1
+                except:
+                    pass
+            
+            if score > highest_score:
+                highest_score = score
+                best_match = col
+        
+        if best_match:
+            print(f"[SUCCESS] 基于数据特征的智能识别成功: {best_match} (分数: {highest_score})")
+            return best_match
+        
+        # 4. 尝试所有数值列
+        numeric_columns = []
+        for col in df.columns:
+            if df[col].dtype in [np.float64, np.int64]:
+                numeric_columns.append(col)
+        
+        if numeric_columns:
+            # 选择最后一个数值列（通常UCS在最后）
+            best_match = numeric_columns[-1]
+            print(f"[SUCCESS] 选择最后一个数值列: {best_match}")
+            return best_match
+        
+        # 5. 尝试所有列，不管类型
+        if len(df.columns) > 0:
+            # 选择最后一列
+            best_match = df.columns[-1]
+            print(f"[SUCCESS] 选择最后一列: {best_match}")
+            return best_match
+        
+        raise ValueError(f"数据中未找到UCS相关列，请检查数据文件。可用列名: {df.columns.tolist()}")
+    
+    def _calculate_column_score(self, column_name):
+        """计算列名与UCS的匹配分数
+        
+        Args:
+            column_name: 列名
+            
+        Returns:
+            匹配分数
+        """
+        score = 0
+        col_str = column_name.lower()
+        
+        # 关键词匹配
+        ucs_keywords = ['ucs', '抗压', '强度', 'strength', 'compressive']
+        for keyword in ucs_keywords:
+            if keyword in col_str:
+                score += 0.2
+        
+        # 单位匹配
+        unit_keywords = ['mpa', '兆帕', '压强', '压力']
+        for keyword in unit_keywords:
+            if keyword in col_str:
+                score += 0.1
+        
+        return score
         
     def create_preprocessing_pipeline(self):
         """创建数据预处理Pipeline：缺失值填充和特征标准化"""
