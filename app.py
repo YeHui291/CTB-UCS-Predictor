@@ -251,40 +251,18 @@ elif selected_page == "模型训练":
         # 读取数据
         df = pd.read_excel(uploaded_file)
         
-        # UCS列设置卡片
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🎯 UCS列设置")
+        # 初始化 session state 来跟踪列名调整
+        if 'columns_adjusted' not in st.session_state:
+            st.session_state.columns_adjusted = False
+        if 'adjusted_df' not in st.session_state:
+            st.session_state.adjusted_df = None
         
-        # 自动检测可能的UCS列
-        possible_ucs_columns = []
-        for col in df.columns:
-            col_str = str(col).lower()
-            if 'ucs' in col_str or '抗压' in col_str or '强度' in col_str or 'strength' in col_str:
-                possible_ucs_columns.append(col)
-        
-        # 选择UCS列
-        if possible_ucs_columns:
-            selected_ucs = st.selectbox(
-                "选择UCS列",
-                options=df.columns.tolist(),
-                index=df.columns.tolist().index(possible_ucs_columns[0]) if possible_ucs_columns[0] in df.columns else 0,
-                help="从检测到的列中选择包含UCS值的列"
-            )
-        else:
-            # 如果没有检测到，让用户从所有列中选择
-            selected_ucs = st.selectbox(
-                "选择UCS列",
-                options=df.columns.tolist(),
-                help="从所有列中选择包含UCS值的列"
-            )
-        st.markdown('</div>', unsafe_allow_html=True)
-
         # 列名调整卡片
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("🔧 列名调整")
         
         # 显示当前列名
-        st.write("当前列名：")
+        st.write("原始列名：")
         st.code(', '.join([str(col) for col in df.columns]))
         
         # 提供列名修改功能
@@ -297,22 +275,55 @@ elif selected_page == "模型训练":
         # 应用列名调整
         if st.button("✅ 应用列名调整"):
             df.columns = adjusted_columns
+            st.session_state.adjusted_df = df.copy()
+            st.session_state.columns_adjusted = True
             st.success("列名调整成功！")
             st.write("新列名：", df.columns.tolist())
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # 使用调整后的数据框（如果有）
+        working_df = st.session_state.adjusted_df if st.session_state.columns_adjusted else df
+        
+        # UCS列设置卡片
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("🎯 UCS列设置")
+        
+        # 自动检测可能的UCS列
+        possible_ucs_columns = []
+        for col in working_df.columns:
+            col_str = str(col).lower()
+            if 'ucs' in col_str or '抗压' in col_str or '强度' in col_str or 'strength' in col_str:
+                possible_ucs_columns.append(col)
+        
+        # 选择UCS列
+        if possible_ucs_columns:
+            selected_ucs = st.selectbox(
+                "选择UCS列",
+                options=working_df.columns.tolist(),
+                index=working_df.columns.tolist().index(possible_ucs_columns[0]) if possible_ucs_columns[0] in working_df.columns else 0,
+                help="从检测到的列中选择包含UCS值的列"
+            )
+        else:
+            # 如果没有检测到，让用户从所有列中选择
+            selected_ucs = st.selectbox(
+                "选择UCS列",
+                options=working_df.columns.tolist(),
+                help="从所有列中选择包含UCS值的列"
+            )
         st.markdown('</div>', unsafe_allow_html=True)
 
         # 数据预览卡片
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📊 训练数据（可编辑）")
-        edited_df = st.data_editor(df, use_container_width=True)
+        edited_df = st.data_editor(working_df, use_container_width=True)
         
         # 显示数据统计信息
         st.subheader("📈 数据统计")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("样本数量", len(df))
+            st.metric("样本数量", len(working_df))
         with col2:
-            st.metric("特征数量", len(df.columns) - 1)
+            st.metric("特征数量", len(working_df.columns) - 1)
         with col3:
             st.metric("UCS列", selected_ucs)
         st.markdown('</div>', unsafe_allow_html=True)

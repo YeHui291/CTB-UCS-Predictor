@@ -41,6 +41,7 @@ class GradientBoostingUCSModel:
             target_column: 手动指定的目标列名
         """
         print("\n=== 数据加载开始 ===")
+        print(f"目标列: {target_column}")
         
         # 首先尝试 header=0（最常见的情况）
         try:
@@ -53,20 +54,64 @@ class GradientBoostingUCSModel:
             # 清理列名
             df.columns = [col.strip() if isinstance(col, str) else col for col in df.columns]
             
-            print(f"[SUCCESS] Header=0 读取成功")
-            print(f"列名: {df.columns.tolist()}")
-            print(f"数据形状: {df.shape}")
+            # 检查是否有 Unnamed 列
+            unnamed_count = sum(1 for col in df.columns if str(col).startswith('Unnamed'))
+            print(f"[INFO] Header=0 读取成功")
+            print(f"[INFO] 列名: {df.columns.tolist()}")
+            print(f"[INFO] 数据形状: {df.shape}")
+            print(f"[INFO] Unnamed列数量: {unnamed_count}")
+            
+            # 如果 Unnamed 列太多，尝试其他 header
+            if unnamed_count > len(df.columns) / 2:
+                print(f"[WARNING] Unnamed列过多，尝试其他header设置")
+                raise Exception("Unnamed列过多")
             
         except Exception as e:
-            print(f"Header=0 读取失败: {e}")
+            print(f"[INFO] Header=0 读取失败，尝试其他方式...")
             
             # 尝试多种方式读取文件，确保列名正确识别
             best_df = None
             best_columns = []
+            best_header = None
             
-            # 尝试不同的header设置（更多位置）
-            for header in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            # 尝试不设置header，让pandas自动处理
+            print("[INFO] 尝试不设置header...")
+            try:
+                if hasattr(file_path, 'read'):
+                    file_path.seek(0)
+                    df_temp = pd.read_excel(file_path, engine='openpyxl', header=None)
+                else:
+                    df_temp = pd.read_excel(file_path, engine='openpyxl', header=None)
+                
+                # 尝试将第一行作为列名
+                if len(df_temp) > 0:
+                    first_row = df_temp.iloc[0].tolist()
+                    df_temp.columns = first_row
+                    df_temp = df_temp[1:]
+                    print(f"[INFO] 将第一行作为列名: {first_row}")
+                    
+                    # 清理列名
+                    df_temp.columns = [str(col).strip() if isinstance(col, (str, int, float)) else col for col in df_temp.columns]
+                    
+                    # 检查列名质量
+                    non_unnamed_count = sum(1 for col in df_temp.columns if not str(col).startswith('Unnamed'))
+                    print(f"[INFO] 找到 {non_unnamed_count} 个有效列名")
+                    
+                    if non_unnamed_count > len(best_columns):
+                        best_df = df_temp.copy()
+                        best_columns = df_temp.columns.tolist()
+                        best_header = "first_row"
+            except Exception as e1:
+                print(f"[ERROR] 不设置header失败: {e1}")
+            
+            # 尝试不同的header设置
+            for header in [0, 1, 2, 3, 4, 5]:
                 try:
+                    if hasattr(file_path, 'read'):
+                        file_path.seek(0)
+                    else:
+                        pass
+                        
                     if hasattr(file_path, 'read'):
                         file_path.seek(0)
                         df_temp = pd.read_excel(file_path, engine='openpyxl', header=header)
@@ -77,42 +122,29 @@ class GradientBoostingUCSModel:
                     df_temp.columns = [col.strip() if isinstance(col, str) else col for col in df_temp.columns]
                     
                     # 检查列名质量
-                    non_unnamed_count = sum(1 for col in df_temp.columns if not str(col).startswith('Unnamed:'))
+                    non_unnamed_count = sum(1 for col in df_temp.columns if not str(col).startswith('Unnamed'))
+                    print(f"[INFO] Header={header} 找到 {non_unnamed_count} 个有效列名")
                     
                     if non_unnamed_count > len(best_columns):
-                        best_df = df_temp
+                        best_df = df_temp.copy()
                         best_columns = df_temp.columns.tolist()
-                        print(f"  Header={header} 找到 {non_unnamed_count} 个有效列名")
+                        best_header = header
                         
                 except Exception as e2:
-                    print(f"  Header={header} 读取失败: {e2}")
+                    print(f"[ERROR] Header={header} 读取失败: {e2}")
                     continue
             
             # 如果找到了较好的列名，使用它
             if best_df is not None:
                 df = best_df
-                print(f"[SUCCESS] 使用列名: {best_columns}")
+                print(f"[SUCCESS] 使用 header={best_header} 的列名: {best_columns}")
             else:
-                # 最后的尝试 - 不设置header，让pandas自动处理
-                print("尝试不设置header...")
-                if hasattr(file_path, 'read'):
-                    file_path.seek(0)
-                    df = pd.read_excel(file_path, engine='openpyxl', header=None)
-                else:
-                    df = pd.read_excel(file_path, engine='openpyxl', header=None)
-                
-                # 尝试将第一行作为列名
-                try:
-                    df.columns = df.iloc[0]
-                    df = df[1:]
-                    print(f"[SUCCESS] 将第一行作为列名")
-                    print(f"列名: {df.columns.tolist()}")
-                except Exception as e3:
-                    print(f"  将第一行作为列名失败: {e3}")
+                raise Exception("无法找到有效的列名")
         
         # 清理列名（去除空格和特殊字符）
         df.columns = [str(col).strip() if isinstance(col, (str, int, float)) else col for col in df.columns]
-        print(f"最终列名: {df.columns.tolist()}")
+        print(f"[INFO] 最终列名: {df.columns.tolist()}")
+        print(f"[INFO] 数据形状: {df.shape}")
         print(f"=== 数据加载结束 ===\n")
         
         # 使用AI辅助识别列名
