@@ -5,56 +5,60 @@ import matplotlib.pyplot as plt
 from ucs_optimizer.core.optimizer import UCSOptimizer
 from ucs_optimizer.core.lca_calculator import LCACalculator
 
-# 设置页面配置
+# Page Configuration
 st.set_page_config(
     page_title="UCS Optimizer",
-    page_icon="⚡",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# 自定义 CSS 样式
+# Academic Style CSS
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;400;500;600;700&display=swap');
     
     * {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Roboto Slab', serif;
     }
     
     .main {
-        background-color: #f8f9fa;
+        background-color: #f5f5f5;
     }
     
     .stApp {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
+        padding: 20px;
     }
     
     .stButton>button {
-        background-color: #3498db;
+        background-color: #1e3a5f;
         color: white;
-        border-radius: 8px;
-        padding: 10px 20px;
-        font-weight: 600;
+        border-radius: 6px;
+        padding: 12px 24px;
+        font-weight: 500;
         border: none;
+        font-size: 14px;
         transition: all 0.3s ease;
     }
     
     .stButton>button:hover {
-        background-color: #2980b9;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        background-color: #2c5282;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 6px rgba(30, 58, 95, 0.3);
     }
     
     .stHeader {
-        color: #2c3e50;
+        color: #1e3a5f;
         font-weight: 700;
         margin-bottom: 20px;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 10px;
     }
     
     .stSubheader {
-        color: #34495e;
+        color: #2d3748;
         font-weight: 600;
         margin-top: 25px;
         margin-bottom: 15px;
@@ -62,282 +66,295 @@ st.markdown("""
     
     .stMetric {
         background-color: white;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        border-left: 4px solid #3498db;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 4px solid #3182ce;
     }
     
     .stDataFrame {
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         overflow: hidden;
     }
     
     .stRadio > div {
-        padding: 12px;
-        border-radius: 12px;
+        padding: 10px 15px;
+        border-radius: 8px;
         background-color: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 8px;
+        border: 1px solid #e2e8f0;
     }
     
     .stNumberInput > div > div > input {
-        border-radius: 6px;
-        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        border: 1px solid #e2e8f0;
         padding: 8px;
+        font-family: 'Roboto Slab', serif;
     }
     
     .stFileUploader > div > div > button {
-        border-radius: 8px;
-        background-color: #ecf0f1;
-        border: 2px dashed #bdc3c7;
-        padding: 20px;
+        border-radius: 6px;
+        background-color: #f7fafc;
+        border: 2px dashed #cbd5e0;
+        padding: 25px;
         transition: all 0.3s ease;
     }
     
     .stFileUploader > div > div > button:hover {
-        background-color: #e8f4f8;
-        border-color: #3498db;
+        background-color: #edf2f7;
+        border-color: #3182ce;
     }
     
     .stSlider > div > div > div > div {
-        background-color: #3498db;
+        background-color: #3182ce;
     }
     
     .sidebar {
-        background-color: #2c3e50;
-        color: white;
+        background-color: #1a202c;
+        color: #e2e8f0;
     }
     
     .sidebar .stTitle {
-        color: white;
+        color: #fff;
         font-weight: 700;
     }
     
     .sidebar .stRadio > div {
-        background-color: #34495e;
-        color: white;
-        border-radius: 8px;
+        background-color: #2d3748;
+        color: #e2e8f0;
+        border-radius: 6px;
+        border: none;
     }
     
     .sidebar .stRadio > div:hover {
-        background-color: #3d566e;
+        background-color: #4a5568;
     }
     
     .card {
         background-color: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         margin-bottom: 20px;
+        border: 1px solid #e2e8f0;
     }
     
     .highlight {
-        background-color: #e8f4f8;
-        border-left: 4px solid #3498db;
-        padding: 15px;
-        border-radius: 0 8px 8px 0;
+        background-color: #ebf8ff;
+        border-left: 4px solid #3182ce;
+        padding: 15px 20px;
+        border-radius: 0 6px 6px 0;
         margin: 15px 0;
     }
     
     .success-message {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 15px 0;
+        background-color: #f0fff4;
+        color: #276749;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin: 12px 0;
+        border: 1px solid #c6f6d5;
     }
     
     .warning-message {
-        background-color: #fff3cd;
-        color: #856404;
+        background-color: #fffaf0;
+        color: #744210;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin: 12px 0;
+        border: 1px solid #feebc8;
+    }
+    
+    .info-box {
+        background-color: #f7fafc;
         padding: 15px;
-        border-radius: 8px;
-        margin: 15px 0;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 页面标题
-st.title("⚡ UCS Optimizer")
-st.markdown("**智能水泥强度预测和环境影响评估工具**")
+# Page Title
+st.title("UCS Optimizer")
+st.markdown("**Machine Learning-based UCS Prediction and Environmental Impact Assessment**")
 
-# 侧边栏导航
+# Sidebar Navigation
 with st.sidebar:
-    st.title("功能导航")
+    st.title("Navigation")
     selected_page = st.radio(
-        "选择功能",
-        ["首页", "模型训练", "强度预测", "LCA 计算", "完整分析"]
+        "Select Function",
+        ["Home", "Model Training", "Strength Prediction", "LCA Calculation", "Comprehensive Analysis"]
     )
     
-    # 添加版本信息
+    # Version Information
     st.markdown("---")
-    st.markdown("**版本信息**")
+    st.markdown("**Version**")
     st.markdown("v1.0.0")
     
-    # 添加使用提示
+    # Usage Tips
     st.markdown("---")
-    st.markdown("**使用提示**")
-    st.markdown("- 上传数据文件进行分析")
-    st.markdown("- 支持 Excel 格式文件")
-    st.markdown("- 可手动输入参数进行预测")
+    st.markdown("**Usage Tips**")
+    st.markdown("- Upload data files for analysis")
+    st.markdown("- Supports Excel format")
+    st.markdown("- Manual parameter input available")
 
-# 首页
-if selected_page == "首页":
-    st.header("UCS Optimizer 简介")
+# Home Page
+if selected_page == "Home":
+    st.header("About UCS Optimizer")
     
-    # 添加卡片式布局
+    # Card Layout
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🎯 核心功能")
-        st.write("• 智能水泥强度预测模型")
-        st.write("• 环境影响评估 (LCA)")
-        st.write("• 完整的分析流程")
-        st.write("• 数据可视化展示")
+        st.subheader("🎯 Core Features")
+        st.write("• Machine learning-based UCS prediction")
+        st.write("• Environmental Impact Assessment (LCA)")
+        st.write("• Complete analysis workflow")
+        st.write("• Data visualization")
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📁 示例数据")
-        st.write("• `sample_cement_data.xlsx` - 水泥强度训练数据")
-        st.write("• `sample_lci_data.xlsx` - LCA 计算数据")
+        st.subheader("📁 Sample Data")
+        st.write("• `sample_cement_data.xlsx` - Training dataset")
+        st.write("• `sample_lci_data.xlsx` - LCA inventory data")
         st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('<div class="highlight">', unsafe_allow_html=True)
-    st.subheader("🚀 快速开始")
-    st.write("1. 上传您的水泥数据文件")
-    st.write("2. 选择 UCS 列并训练模型")
-    st.write("3. 使用训练好的模型进行预测")
-    st.write("4. 计算环境影响指标")
+    st.subheader("🚀 Quick Start")
+    st.write("1. Upload your cement data file")
+    st.write("2. Select the UCS column and train the model")
+    st.write("3. Use the trained model for prediction")
+    st.write("4. Calculate environmental impact indicators")
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 添加技术特点
-    st.subheader("🔧 技术特点")
+    # Technical Features
+    st.subheader("🔧 Technical Features")
     features = {
-        "机器学习模型": "使用先进的机器学习算法预测水泥强度",
-        "多参数分析": "支持多种特征变量的综合分析",
-        "环境影响评估": "计算水泥生产的环境影响指标",
-        "用户友好界面": "直观的 Streamlit 网页界面",
-        "数据可视化": "丰富的图表和数据展示",
-        "灵活的输入方式": "支持文件上传和手动输入"
+        "Machine Learning Models": "Advanced ML algorithms for cement strength prediction",
+        "Multi-parameter Analysis": "Comprehensive analysis with multiple features",
+        "Environmental Assessment": "Calculate environmental impact indicators",
+        "User-Friendly Interface": "Intuitive Streamlit web interface",
+        "Data Visualization": "Rich charts and data presentation",
+        "Flexible Input": "Support for file upload and manual input"
     }
     
     for feature, description in features.items():
         st.markdown(f"**{feature}**: {description}")
     
-    # 添加联系信息
+    # Contact Information
     st.markdown("---")
-    st.subheader("📞 联系我们")
-    st.write("如有任何问题或建议，请联系我们。")
+    st.subheader("📞 Contact Us")
+    st.write("For questions or suggestions, please contact us.")
 
-# 模型训练页面
-elif selected_page == "模型训练":
-    st.header("模型训练")
+# Model Training Page
+elif selected_page == "Model Training":
+    st.header("Model Training")
     
-    # 数据输入方式选择
+    # Data Input Method
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🔄 数据输入方式")
+    st.subheader("🔄 Data Input Method")
     data_input_method = st.radio(
-        "选择数据输入方式",
-        ["文件上传", "手动输入"]
+        "Select input method",
+        ["File Upload", "Manual Input"]
     )
     st.markdown('</div>', unsafe_allow_html=True)
     
-    if data_input_method == "文件上传":
-        # 文件上传卡片
+    if data_input_method == "File Upload":
+        # File Upload Card
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📁 数据上传")
-        uploaded_file = st.file_uploader("上传训练数据文件", type=["xlsx"], key="train_uploader")
+        st.subheader("📁 Upload Training Data")
+        uploaded_file = st.file_uploader("Upload training data file", type=["xlsx"], key="train_uploader")
         st.markdown('</div>', unsafe_allow_html=True)
         
         if uploaded_file is not None:
             st.markdown('<div class="success-message">', unsafe_allow_html=True)
-            st.success("文件上传成功！")
+            st.success("File uploaded successfully!")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 读取数据
+            # Read Data
             df = pd.read_excel(uploaded_file)
             use_uploaded_data = True
             
-            # 初始化 session state 来跟踪列名调整
+            # Initialize session state for column adjustment
             if 'columns_adjusted' not in st.session_state:
                 st.session_state.columns_adjusted = False
             if 'adjusted_df' not in st.session_state:
                 st.session_state.adjusted_df = None
             
-            # 列名调整卡片
+            # Column Name Adjustment Card
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🔧 列名调整")
+            st.subheader("🔧 Column Name Adjustment")
             
-            # 显示当前列名
-            st.write("原始列名：")
+            # Show current column names
+            st.write("Original Columns:")
             st.code(', '.join([str(col) for col in df.columns]))
             
-            # 提供列名修改功能
-            st.write("调整列名：")
+            # Column name modification
+            st.write("Adjust Column Names:")
             adjusted_columns = []
             for i, col in enumerate(df.columns):
-                new_col = st.text_input(f"列 {i+1}：{col}", value=str(col), key=f"col_{i}")
+                new_col = st.text_input(f"Column {i+1}: {col}", value=str(col), key=f"col_{i}")
                 adjusted_columns.append(new_col)
             
-            # 应用列名调整
-            if st.button("✅ 应用列名调整"):
+            # Apply column name adjustment
+            if st.button("✅ Apply Column Adjustment"):
                 df.columns = adjusted_columns
                 st.session_state.adjusted_df = df.copy()
                 st.session_state.columns_adjusted = True
-                st.success("列名调整成功！")
-                st.write("新列名：", df.columns.tolist())
+                st.success("Column names adjusted successfully!")
+                st.write("New Columns:", df.columns.tolist())
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 使用调整后的数据框（如果有）
+            # Use adjusted dataframe if available
             working_df = st.session_state.adjusted_df if st.session_state.columns_adjusted else df
             
-            # UCS列设置卡片
+            # UCS Column Selection Card
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🎯 UCS列设置")
+            st.subheader("🎯 UCS Column Selection")
             
-            # 自动检测可能的UCS列
+            # Auto-detect possible UCS columns
             possible_ucs_columns = []
             for col in working_df.columns:
                 col_str = str(col).lower()
-                if 'ucs' in col_str or '抗压' in col_str or '强度' in col_str or 'strength' in col_str:
+                if 'ucs' in col_str or 'strength' in col_str:
                     possible_ucs_columns.append(col)
             
-            # 选择UCS列
+            # Select UCS column
             if possible_ucs_columns:
                 selected_ucs = st.selectbox(
-                    "选择UCS列",
+                    "Select UCS column",
                     options=working_df.columns.tolist(),
                     index=working_df.columns.tolist().index(possible_ucs_columns[0]) if possible_ucs_columns[0] in working_df.columns else 0,
-                    help="从检测到的列中选择包含UCS值的列"
+                    help="Select the column containing UCS values"
                 )
             else:
-                # 如果没有检测到，让用户从所有列中选择
+                # If not detected, let user select from all columns
                 selected_ucs = st.selectbox(
-                    "选择UCS列",
+                    "Select UCS column",
                     options=working_df.columns.tolist(),
-                    help="从所有列中选择包含UCS值的列"
+                    help="Select the column containing UCS values"
                 )
             st.markdown('</div>', unsafe_allow_html=True)
     else:
-        # 手动输入数据
+        # Manual Input
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📝 手动输入新训练数据")
-        st.write("请在下方表格中填写新的训练数据（系统将自动与默认数据集合并进行训练）：")
+        st.subheader("📝 Manual Input for New Training Data")
+        st.write("Enter new training data below (will be merged with default dataset):")
         
-        # 加载默认数据集（在后台）
+        # Load default dataset (in background)
         try:
             default_data_path = "d:/6个模型机器学习/去除D50去掉Fe203-UCS等参数记录12.13.xlsx"
             default_df = pd.read_excel(default_data_path)
-            st.info(f"已加载默认数据集，包含 {len(default_df)} 条记录")
+            st.info(f"Default dataset loaded with {len(default_df)} records")
         except Exception as e:
-            st.warning(f"无法加载默认数据集：{e}")
+            st.warning(f"Failed to load default dataset: {e}")
             default_df = pd.DataFrame()
         
-        # 创建空的用户输入表格
+        # Create empty input table
         user_input_df = pd.DataFrame({
             "Cu": [None],
             "Cc": [None],
@@ -353,74 +370,74 @@ elif selected_page == "模型训练":
             "UCS": [None]
         })
         
-        # 显示可编辑的表格（仅用于输入新数据）
-        st.write("**输入新数据：**")
+        # Editable table for new data input
+        st.write("**Enter New Data:**")
         user_df = st.data_editor(
             user_input_df,
             use_container_width=True,
-            num_rows="dynamic",  # 允许用户添加/删除行
+            num_rows="dynamic",
             column_config={
-                "Cu": st.column_config.NumberColumn("Cu (曲率系数)", min_value=0.0),
-                "Cc": st.column_config.NumberColumn("Cc (不均匀系数)", min_value=0.0),
-                "TEMP": st.column_config.NumberColumn("TEMP (温度 °C)", min_value=0.0),
-                "D10": st.column_config.NumberColumn("D10 (有效粒径 mm)", min_value=0.0),
+                "Cu": st.column_config.NumberColumn("Cu (Curvature Coefficient)", min_value=0.0),
+                "Cc": st.column_config.NumberColumn("Cc (Uniformity Coefficient)", min_value=0.0),
+                "TEMP": st.column_config.NumberColumn("TEMP (Temperature °C)", min_value=0.0),
+                "D10": st.column_config.NumberColumn("D10 (Effective Particle Size mm)", min_value=0.0),
                 "SiO2": st.column_config.NumberColumn("SiO2 (%)", min_value=0.0),
                 "CaO": st.column_config.NumberColumn("CaO (%)", min_value=0.0),
                 "Al2O3": st.column_config.NumberColumn("Al2O3 (%)", min_value=0.0),
-                "CT": st.column_config.NumberColumn("CT (水泥类型)", min_value=0.0),
-                "CTR": st.column_config.NumberColumn("CTR (水泥-尾矿比)", min_value=0.0, max_value=1.0),
-                "MC": st.column_config.NumberColumn("MC (质量浓度 %)", min_value=0.0, max_value=100.0),
-                "T": st.column_config.NumberColumn("T (固化时间 天)", min_value=0.0),
-                "UCS": st.column_config.NumberColumn("UCS (抗压强度 MPa)", min_value=0.0),
+                "CT": st.column_config.NumberColumn("CT (Cement Type)", min_value=0.0),
+                "CTR": st.column_config.NumberColumn("CTR (Cement-Tailings Ratio)", min_value=0.0, max_value=1.0),
+                "MC": st.column_config.NumberColumn("MC (Mass Concentration %)", min_value=0.0, max_value=100.0),
+                "T": st.column_config.NumberColumn("T (Curing Time days)", min_value=0.0),
+                "UCS": st.column_config.NumberColumn("UCS (Unconfined Compressive Strength MPa)", min_value=0.0),
             }
         )
         st.markdown('</div>', unsafe_allow_html=True)
         use_uploaded_data = False
         
-        # 合并默认数据和用户输入数据
-        # 过滤掉用户输入中的空行
+        # Merge default data with user input
+        # Filter out empty rows
         user_df_clean = user_df.dropna(how='all')
         
         if len(user_df_clean) > 0:
-            # 合并数据
+            # Merge data
             working_df = pd.concat([default_df, user_df_clean], ignore_index=True)
-            st.success(f"已合并数据：默认数据集 {len(default_df)} 条 + 用户新数据 {len(user_df_clean)} 条 = 总共 {len(working_df)} 条")
+            st.success(f"Data merged: {len(default_df)} default + {len(user_df_clean)} new = {len(working_df)} total records")
         else:
             working_df = default_df
-            st.info(f"使用默认数据集进行训练，共 {len(working_df)} 条记录")
+            st.info(f"Using default dataset for training: {len(working_df)} records")
         
         selected_ucs = "UCS"
 
-        # 数据预览卡片
+        # Data Preview Card
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📊 训练数据（可编辑）")
+        st.subheader("📊 Training Data (Editable)")
         edited_df = st.data_editor(working_df, use_container_width=True)
         
-        # 显示数据统计信息
-        st.subheader("📈 数据统计")
+        # Data Statistics
+        st.subheader("📈 Data Statistics")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("样本数量", len(working_df))
+            st.metric("Number of Samples", len(working_df))
         with col2:
-            st.metric("特征数量", len(working_df.columns) - 1)
+            st.metric("Number of Features", len(working_df.columns) - 1)
         with col3:
-            st.metric("UCS列", selected_ucs)
+            st.metric("UCS Column", selected_ucs)
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 训练参数卡片
+        # Training Parameters Card
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("⚙️ 训练参数")
+        st.subheader("⚙️ Training Parameters")
         col1, col2 = st.columns(2)
         with col1:
-            test_size = st.slider("测试集比例", 0.1, 0.5, 0.2, help="用于评估模型的测试数据比例")
+            test_size = st.slider("Test Set Ratio", 0.1, 0.5, 0.2, help="Proportion of data used for model evaluation")
         with col2:
-            random_state = st.number_input("随机种子", 0, 1000, 42, help="控制数据分割的随机性")
+            random_state = st.number_input("Random Seed", 0, 1000, 42, help="Controls randomness of data splitting")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 训练按钮
-        if st.button("🚀 开始训练"):
-            with st.spinner("正在训练模型..."):
-                # 保存编辑后的数据到临时文件
+        # Train Button
+        if st.button("🚀 Start Training"):
+            with st.spinner("Training model..."):
+                # Save edited data to temporary file
                 import tempfile
                 import os
                 
@@ -430,7 +447,7 @@ elif selected_page == "模型训练":
                 edited_df.to_excel(tmp_path, index=False)
                 
                 optimizer = UCSOptimizer()
-                # 训练模型
+                # Train model
                 model, metrics = optimizer.train(
                     data_path=tmp_path,
                     test_size=test_size,
@@ -438,72 +455,72 @@ elif selected_page == "模型训练":
                     target_column=selected_ucs
                 )
                 
-                # 清理临时文件
+                # Clean up temporary file
                 os.unlink(tmp_path)
 
             st.markdown('<div class="success-message">', unsafe_allow_html=True)
-            st.success("模型训练完成！")
+            st.success("Model training completed!")
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 训练结果卡片
+            # Training Results Card
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🏆 训练结果")
+            st.subheader("🏆 Training Results")
             
-            # 使用列显示指标
+            # Display metrics in columns
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("R² 评分", f"{metrics['r2']:.2f}")
+                st.metric("R² Score", f"{metrics['r2']:.2f}")
             with col2:
-                st.metric("均方误差", f"{metrics['mse']:.2f}")
+                st.metric("MSE", f"{metrics['mse']:.2f}")
             with col3:
-                st.metric("训练样本", f"{int(len(edited_df) * (1 - test_size))}")
+                st.metric("Training Samples", f"{int(len(edited_df) * (1 - test_size))}")
             with col4:
-                st.metric("测试样本", f"{int(len(edited_df) * test_size)}")
+                st.metric("Test Samples", f"{int(len(edited_df) * test_size)}")
             
-            # 添加模型性能说明
+            # Model performance assessment
             if metrics['r2'] > 0.8:
-                st.markdown("✅ 模型性能优秀，预测准确度高")
+                st.markdown("✅ Excellent model performance with high prediction accuracy")
             elif metrics['r2'] > 0.6:
-                st.markdown("⚠️ 模型性能良好，可以使用")
+                st.markdown("⚠️ Good model performance, ready for use")
             else:
-                st.markdown("❌ 模型性能较差，建议增加数据或调整参数")
+                st.markdown("❌ Poor model performance, consider adding more data or adjusting parameters")
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 强度预测页面
-elif selected_page == "强度预测":
-    st.header("强度预测")
+# Strength Prediction Page
+elif selected_page == "Strength Prediction":
+    st.header("Strength Prediction")
     
-    # 预测方式选择卡片
+    # Prediction Method Card
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🔄 预测方式")
+    st.subheader("🔄 Prediction Method")
     prediction_method = st.radio(
-        "选择预测方式",
-        ["文件上传", "手动输入"]
+        "Select prediction method",
+        ["File Upload", "Manual Input"]
     )
     st.markdown('</div>', unsafe_allow_html=True)
     
-    if prediction_method == "文件上传":
-        # 文件上传卡片
+    if prediction_method == "File Upload":
+        # File Upload Card
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📁 数据上传")
-        data_file = st.file_uploader("上传预测数据文件", type=["xlsx"], key="predict_uploader")
+        st.subheader("📁 Upload Data")
+        data_file = st.file_uploader("Upload prediction data file", type=["xlsx"], key="predict_uploader")
         
         if data_file:
             st.markdown('<div class="success-message">', unsafe_allow_html=True)
-            st.success("文件上传成功！")
+            st.success("File uploaded successfully!")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 读取数据
+            # Read Data
             df = pd.read_excel(data_file)
             
-            # 显示可编辑的数据表格
-            st.subheader("📊 预测数据（可编辑）")
+            # Display editable data table
+            st.subheader("📊 Prediction Data (Editable)")
             edited_df = st.data_editor(df, use_container_width=True)
             
-            # 预测按钮
-            if st.button("🚀 开始预测"):
-                with st.spinner("正在预测..."):
-                    # 保存编辑后的数据到临时文件
+            # Predict Button
+            if st.button("🚀 Start Prediction"):
+                with st.spinner("Predicting..."):
+                    # Save edited data to temporary file
                     import tempfile
                     import os
                     
@@ -513,64 +530,63 @@ elif selected_page == "强度预测":
                     edited_df.to_excel(tmp_path, index=False)
                     
                     optimizer = UCSOptimizer()
-                    # 使用示例数据训练模型
-                    import os
+                    # Train model with sample data
                     sample_data = os.path.join(os.path.dirname(__file__), "ucs_optimizer", "data", "sample_cement_data.xlsx")
                     model, metrics = optimizer.train(data_path=sample_data)
-                    # 然后预测
+                    # Then predict
                     predictions = optimizer.predict(input_data=tmp_path)
                     
-                    # 清理临时文件
+                    # Clean up temporary file
                     os.unlink(tmp_path)
                     
                 st.markdown('<div class="success-message">', unsafe_allow_html=True)
-                st.success("预测完成！")
+                st.success("Prediction completed!")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # 显示预测结果
-                st.subheader("🏆 预测结果")
+                # Display prediction results
+                st.subheader("🏆 Prediction Results")
                 st.dataframe(predictions)
                 
-                # 显示预测统计信息
-                st.subheader("📈 预测统计")
+                # Display prediction statistics
+                st.subheader("📈 Prediction Statistics")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("预测样本数", len(predictions))
+                    st.metric("Number of Predictions", len(predictions))
                 with col2:
-                    st.metric("平均UCS", f"{predictions['Predicted UCS'].mean():.2f} MPa")
+                    st.metric("Average UCS", f"{predictions['Predicted UCS'].mean():.2f} MPa")
                 with col3:
-                    st.metric("最大UCS", f"{predictions['Predicted UCS'].max():.2f} MPa")
+                    st.metric("Maximum UCS", f"{predictions['Predicted UCS'].max():.2f} MPa")
         st.markdown('</div>', unsafe_allow_html=True)
     
-    else:  # 手动输入
-        # 手动输入卡片
+    else:  # Manual Input
+        # Manual Input Card
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🎯 手动输入特征变量")
+        st.subheader("🎯 Manual Input of Features")
         
-        # 特征变量输入（11个特征）
+        # Feature inputs (11 features)
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            cu = st.number_input("Cu", min_value=0.0, value=12.7, help="曲率系数")
-            cc = st.number_input("Cc", min_value=0.0, value=1.3, help="不均匀系数")
-            tem = st.number_input("TEM", min_value=0.0, value=25.0, help="温度 (°C)")
-            d10 = st.number_input("D10", min_value=0.0, value=0.005, help="有效粒径 (mm)")
+            cu = st.number_input("Cu", min_value=0.0, value=12.7, help="Curvature Coefficient")
+            cc = st.number_input("Cc", min_value=0.0, value=1.3, help="Uniformity Coefficient")
+            tem = st.number_input("TEM", min_value=0.0, value=25.0, help="Temperature (°C)")
+            d10 = st.number_input("D10", min_value=0.0, value=0.005, help="Effective Particle Size (mm)")
         
         with col2:
-            sio2 = st.number_input("SiO2", min_value=0.0, value=29.11, help="二氧化硅含量 (%)")
-            cao = st.number_input("CaO", min_value=0.0, value=32.65, help="氧化钙含量 (%)")
-            al2o3 = st.number_input("Al2O3", min_value=0.0, value=0.37, help="氧化铝含量 (%)")
-            ct = st.number_input("CT", min_value=0.0, value=32.5, help="水泥类型")
+            sio2 = st.number_input("SiO2", min_value=0.0, value=29.11, help="Silicon Dioxide (%)")
+            cao = st.number_input("CaO", min_value=0.0, value=32.65, help="Calcium Oxide (%)")
+            al2o3 = st.number_input("Al2O3", min_value=0.0, value=0.37, help="Aluminum Oxide (%)")
+            ct = st.number_input("CT", min_value=0.0, value=32.5, help="Cement Type")
         
         with col3:
-            ctr = st.number_input("CTR", min_value=0.0, max_value=1.0, value=0.25, help="水泥-尾矿比")
-            mc = st.number_input("MC", min_value=0.0, max_value=100.0, value=76.0, help="质量浓度 (%)")
-            t = st.number_input("T", min_value=0.0, value=7.0, help="固化时间 (天)")
+            ctr = st.number_input("CTR", min_value=0.0, max_value=1.0, value=0.25, help="Cement-Tailings Ratio")
+            mc = st.number_input("MC", min_value=0.0, max_value=100.0, value=76.0, help="Mass Concentration (%)")
+            t = st.number_input("T", min_value=0.0, value=7.0, help="Curing Time (days)")
         
-        # 预测按钮
-        if st.button("🚀 开始预测"):
-            with st.spinner("正在预测..."):
-                # 创建输入数据
+        # Predict Button
+        if st.button("🚀 Start Prediction"):
+            with st.spinner("Predicting..."):
+                # Create input data
                 input_data = pd.DataFrame({
                     "Cu": [cu],
                     "Cc": [cc],
@@ -585,7 +601,7 @@ elif selected_page == "强度预测":
                     "T": [t]
                 })
                 
-                # 保存为临时文件
+                # Save to temporary file
                 import tempfile
                 import os
                 
@@ -594,85 +610,83 @@ elif selected_page == "强度预测":
                 
                 input_data.to_excel(tmp_path, index=False)
                 
-                # 训练模型（使用示例数据）
+                # Train model (using sample data)
                 optimizer = UCSOptimizer()
-                # 使用示例数据训练模型
-                import os
                 sample_data = os.path.join(os.path.dirname(__file__), "ucs_optimizer", "data", "sample_cement_data.xlsx")
                 model, metrics = optimizer.train(data_path=sample_data)
                 
-                # 进行预测
+                # Perform prediction
                 predictions = optimizer.predict(input_data=tmp_path)
                 
-                # 清理临时文件
+                # Clean up temporary file
                 os.unlink(tmp_path)
                 
             st.markdown('<div class="success-message">', unsafe_allow_html=True)
-            st.success("预测完成！")
+            st.success("Prediction completed!")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 显示预测结果
-            st.subheader("🏆 预测结果")
+            # Display prediction results
+            st.subheader("🏆 Prediction Results")
             st.dataframe(predictions)
             
-            # 显示预测值
+            # Display predicted value
             predicted_ucs = predictions['Predicted UCS'].values[0]
             
-            # 创建预测结果卡片
+            # Create prediction result card
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("📊 预测详情")
+            st.subheader("📊 Prediction Details")
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("预测 UCS 值", f"{predicted_ucs:.2f} MPa")
+                st.metric("Predicted UCS", f"{predicted_ucs:.2f} MPa")
             with col2:
-                # 强度等级评估
+                # Strength grade assessment
                 if predicted_ucs >= 25:
-                    st.metric("强度等级", "高强度")
+                    st.metric("Strength Grade", "High Strength")
                 elif predicted_ucs >= 15:
-                    st.metric("强度等级", "中等强度")
+                    st.metric("Strength Grade", "Medium Strength")
                 else:
-                    st.metric("强度等级", "低强度")
+                    st.metric("Strength Grade", "Low Strength")
             
-            # 显示输入参数
-            st.subheader("🔧 输入参数")
+            # Display input parameters
+            st.subheader("🔧 Input Parameters")
             st.dataframe(input_data)
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# LCA 计算页面
-elif selected_page == "LCA 计算":
-    st.header("LCA 计算")
+# LCA Calculation Page
+elif selected_page == "LCA Calculation":
+    st.header("LCA Calculation")
     
-    # 文件上传卡片
+    # File Upload Card
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📁 LCI 数据上传")
-    lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_1")
+    st.subheader("📁 LCI Data Upload")
+    lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_1")
     
     if lci_file:
         st.markdown('<div class="success-message">', unsafe_allow_html=True)
-        st.success("文件上传成功！")
+        st.success("File uploaded successfully!")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # 显示数据预览
+        # Display data preview
         df = pd.read_excel(lci_file)
-        st.subheader("📊 LCI 数据预览")
+        st.subheader("📊 LCI Data Preview")
         st.dataframe(df.head())
         
-        # 计算方式选择
-        st.subheader("🔄 计算方式")
+        # Calculation Method
+        st.subheader("🔄 Calculation Method")
         calc_method = st.radio(
-            "选择计算方式",
-            options=["文件数据", "手动输入"],
+            "Select calculation method",
+            options=["File Data", "Manual Input"],
             key="lca_calc_method"
         )
         
-        if calc_method == "文件数据":
-            # 计算按钮
-            if st.button("🚀 开始计算"):
-                with st.spinner("正在计算 LCA 指标..."):
+        if calc_method == "File Data":
+            # Calculate Button
+            if st.button("🚀 Start Calculation"):
+                with st.spinner("Calculating LCA indicators..."):
                     lca_calculator = LCACalculator()
                     lca_calculator.load_lci_data(lci_file)
-                    # 使用示例数据进行计算
+                    # Calculate with sample data
                     sample_df = pd.DataFrame({
                         "MC": [20, 25, 30],
                         "CTR": [0.1, 0.2, 0.3],
@@ -681,50 +695,50 @@ elif selected_page == "LCA 计算":
                     lca_results = lca_calculator.calculate_lca(sample_df)
                     
                 st.markdown('<div class="success-message">', unsafe_allow_html=True)
-                st.success("计算完成！")
+                st.success("Calculation completed!")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # 显示计算结果
-                st.subheader("🏆 LCA 计算结果")
+                # Display results
+                st.subheader("🏆 LCA Results")
                 st.dataframe(lca_results)
                 
-                # 可视化
-                st.subheader("📈 LCA 指标可视化")
+                # Visualization
+                st.subheader("📈 LCA Indicator Visualization")
                 if not lca_results.empty:
                     fig, ax = plt.subplots(figsize=(10, 6))
                     lca_results.plot(kind='bar', ax=ax)
                     plt.xticks(rotation=45)
-                    plt.title("环境影响指标对比")
+                    plt.title("Environmental Impact Comparison")
                     plt.tight_layout()
                     st.pyplot(fig)
         
-        else:  # 手动输入
-            st.subheader("🎯 手动输入计算参数")
+        else:  # Manual Input
+            st.subheader("🎯 Manual Input of Parameters")
             
-            # 输入参数
+            # Input parameters
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                mc1 = st.number_input("MC 1", min_value=0.0, value=20.0, help="质量浓度 (%)")
-                ctr1 = st.number_input("CTR 1", min_value=0.0, max_value=1.0, value=0.1, help="水泥-尾矿比")
-                ucs1 = st.number_input("UCS 1", min_value=0.0, value=10.0, help="抗压强度 (MPa)")
+                mc1 = st.number_input("MC 1", min_value=0.0, value=20.0, help="Mass Concentration (%)")
+                ctr1 = st.number_input("CTR 1", min_value=0.0, max_value=1.0, value=0.1, help="Cement-Tailings Ratio")
+                ucs1 = st.number_input("UCS 1", min_value=0.0, value=10.0, help="Unconfined Compressive Strength (MPa)")
             
             with col2:
-                mc2 = st.number_input("MC 2", min_value=0.0, value=25.0, help="质量浓度 (%)")
-                ctr2 = st.number_input("CTR 2", min_value=0.0, max_value=1.0, value=0.2, help="水泥-尾矿比")
-                ucs2 = st.number_input("UCS 2", min_value=0.0, value=15.0, help="抗压强度 (MPa)")
+                mc2 = st.number_input("MC 2", min_value=0.0, value=25.0, help="Mass Concentration (%)")
+                ctr2 = st.number_input("CTR 2", min_value=0.0, max_value=1.0, value=0.2, help="Cement-Tailings Ratio")
+                ucs2 = st.number_input("UCS 2", min_value=0.0, value=15.0, help="Unconfined Compressive Strength (MPa)")
             
             with col3:
-                mc3 = st.number_input("MC 3", min_value=0.0, value=30.0, help="质量浓度 (%)")
-                ctr3 = st.number_input("CTR 3", min_value=0.0, max_value=1.0, value=0.3, help="水泥-尾矿比")
-                ucs3 = st.number_input("UCS 3", min_value=0.0, value=20.0, help="抗压强度 (MPa)")
+                mc3 = st.number_input("MC 3", min_value=0.0, value=30.0, help="Mass Concentration (%)")
+                ctr3 = st.number_input("CTR 3", min_value=0.0, max_value=1.0, value=0.3, help="Cement-Tailings Ratio")
+                ucs3 = st.number_input("UCS 3", min_value=0.0, value=20.0, help="Unconfined Compressive Strength (MPa)")
             
-            # 计算按钮
-            if st.button("🚀 开始计算"):
-                with st.spinner("正在计算 LCA 指标..."):
+            # Calculate Button
+            if st.button("🚀 Start Calculation"):
+                with st.spinner("Calculating LCA indicators..."):
                     lca_calculator = LCACalculator()
                     lca_calculator.load_lci_data(lci_file)
-                    # 使用手动输入数据进行计算
+                    # Calculate with manual input data
                     input_df = pd.DataFrame({
                         "MC": [mc1, mc2, mc3],
                         "CTR": [ctr1, ctr2, ctr3],
@@ -733,83 +747,83 @@ elif selected_page == "LCA 计算":
                     lca_results = lca_calculator.calculate_lca(input_df)
                     
                 st.markdown('<div class="success-message">', unsafe_allow_html=True)
-                st.success("计算完成！")
+                st.success("Calculation completed!")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # 显示计算结果
-                st.subheader("🏆 LCA 计算结果")
+                # Display results
+                st.subheader("🏆 LCA Results")
                 st.dataframe(lca_results)
                 
-                # 可视化
-                st.subheader("📈 LCA 指标可视化")
+                # Visualization
+                st.subheader("📈 LCA Indicator Visualization")
                 if not lca_results.empty:
                     fig, ax = plt.subplots(figsize=(10, 6))
                     lca_results.plot(kind='bar', ax=ax)
                     plt.xticks(rotation=45)
-                    plt.title("环境影响指标对比")
+                    plt.title("Environmental Impact Comparison")
                     plt.tight_layout()
                     st.pyplot(fig)
                     
-                # 环境影响评估
-                st.subheader("🌍 环境影响评估")
+                # Environmental Impact Assessment
+                st.subheader("🌍 Environmental Impact Assessment")
                 if not lca_results.empty:
                     total_impact = lca_results.sum(axis=1)
                     avg_impact = total_impact.mean()
                     
                     if avg_impact < 10:
-                        st.markdown("✅ 环境影响较小")
+                        st.markdown("✅ Low environmental impact")
                     elif avg_impact < 20:
-                        st.markdown("⚠️ 环境影响中等")
+                        st.markdown("⚠️ Medium environmental impact")
                     else:
-                        st.markdown("❌ 环境影响较大")
+                        st.markdown("❌ High environmental impact")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# 完整分析页面
-elif selected_page == "完整分析":
-    st.header("完整分析")
+# Comprehensive Analysis Page
+elif selected_page == "Comprehensive Analysis":
+    st.header("Comprehensive Analysis")
     
-    # 完整分析卡片
+    # Comprehensive Analysis Card
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🔄 完整分析流程")
+    st.subheader("🔄 Complete Analysis Workflow")
     
-    # 上传数据文件
-    st.subheader("📁 数据上传")
-    cement_file = st.file_uploader("上传水泥强度数据文件", type=["xlsx"], key="cement_uploader_1")
-    lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_1")
+    # Upload Data Files
+    st.subheader("📁 Upload Data")
+    cement_file = st.file_uploader("Upload cement strength data file", type=["xlsx"], key="cement_uploader_1")
+    lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_2")
     
     if cement_file and lci_file:
         st.markdown('<div class="success-message">', unsafe_allow_html=True)
-        st.success("文件上传成功！")
+        st.success("Files uploaded successfully!")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # 分析参数设置
-        st.subheader("⚙️ 分析参数")
+        # Analysis Parameters
+        st.subheader("⚙️ Analysis Parameters")
         col1, col2 = st.columns(2)
         with col1:
-            test_size = st.slider("测试集比例", 0.1, 0.5, 0.2, help="用于评估模型的测试数据比例")
+            test_size = st.slider("Test Set Ratio", 0.1, 0.5, 0.2, help="Proportion of data used for model evaluation")
         with col2:
-            random_state = st.number_input("随机种子", 0, 1000, 42, help="控制数据分割的随机性")
+            random_state = st.number_input("Random Seed", 0, 1000, 42, help="Controls randomness of data splitting")
         
-        # 开始分析按钮
-        if st.button("🚀 开始完整分析"):
-            with st.spinner("正在进行完整分析..."):
-                # 保存文件到临时位置
+        # Start Analysis Button
+        if st.button("🚀 Start Comprehensive Analysis"):
+            with st.spinner("Performing comprehensive analysis..."):
+                # Save files to temporary locations
                 import tempfile
                 import os
                 
-                # 保存水泥强度数据
+                # Save cement strength data
                 with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
                     cement_path = tmp.name
                 df_cement = pd.read_excel(cement_file)
                 df_cement.to_excel(cement_path, index=False)
                 
-                # 保存 LCI 数据
+                # Save LCI data
                 with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
                     lci_path = tmp.name
                 df_lci = pd.read_excel(lci_file)
                 df_lci.to_excel(lci_path, index=False)
                 
-                # 1. 训练模型
+                # 1. Train model
                 optimizer = UCSOptimizer()
                 model, metrics = optimizer.train(
                     data_path=cement_path,
@@ -817,15 +831,15 @@ elif selected_page == "完整分析":
                     random_state=random_state
                 )
                 
-                # 2. 预测强度
+                # 2. Predict strength
                 predictions = optimizer.predict(input_data=cement_path)
                 
-                # 3. 计算 LCA
+                # 3. Calculate LCA
                 lca_calculator = LCACalculator()
                 lca_calculator.load_lci_data(lci_path)
-                # 提取预测结果中的 UCS 值
+                # Extract UCS values from predictions
                 ucs_values = predictions['Predicted UCS'].values
-                # 创建 LCA 计算所需的数据
+                # Create data for LCA calculation
                 lca_input = pd.DataFrame({
                     "MC": df_cement['MC'] if 'MC' in df_cement.columns else [76.0] * len(ucs_values),
                     "CTR": df_cement['CTR'] if 'CTR' in df_cement.columns else [0.25] * len(ucs_values),
@@ -833,152 +847,152 @@ elif selected_page == "完整分析":
                 })
                 lca_results = lca_calculator.calculate_lca(lca_input)
                 
-                # 清理临时文件
+                # Clean up temporary files
                 os.unlink(cement_path)
                 os.unlink(lci_path)
                 
             st.markdown('<div class="success-message">', unsafe_allow_html=True)
-            st.success("完整分析完成！")
+            st.success("Comprehensive analysis completed!")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 显示分析结果
-            st.subheader("🏆 分析结果")
+            # Display analysis results
+            st.subheader("🏆 Analysis Results")
             
-            # 1. 模型性能
+            # 1. Model Performance
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("📊 模型性能")
+            st.subheader("📊 Model Performance")
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("R² 评分", f"{metrics['r2']:.2f}")
+                st.metric("R² Score", f"{metrics['r2']:.2f}")
             with col2:
-                st.metric("均方误差", f"{metrics['mse']:.2f}")
+                st.metric("MSE", f"{metrics['mse']:.2f}")
             with col3:
-                st.metric("训练样本", f"{int(len(df_cement) * (1 - test_size))}")
+                st.metric("Training Samples", f"{int(len(df_cement) * (1 - test_size))}")
             with col4:
-                st.metric("测试样本", f"{int(len(df_cement) * test_size)}")
+                st.metric("Test Samples", f"{int(len(df_cement) * test_size)}")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 2. 强度预测结果
+            # 2. Strength Prediction Results
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("💪 强度预测结果")
+            st.subheader("💪 Strength Prediction Results")
             st.dataframe(predictions)
             
-            # 预测统计
-            st.subheader("📈 预测统计")
+            # Prediction Statistics
+            st.subheader("📈 Prediction Statistics")
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("预测样本数", len(predictions))
+                st.metric("Number of Predictions", len(predictions))
             with col2:
-                st.metric("平均UCS", f"{predictions['Predicted UCS'].mean():.2f} MPa")
+                st.metric("Average UCS", f"{predictions['Predicted UCS'].mean():.2f} MPa")
             with col3:
-                st.metric("最大UCS", f"{predictions['Predicted UCS'].max():.2f} MPa")
+                st.metric("Maximum UCS", f"{predictions['Predicted UCS'].max():.2f} MPa")
             with col4:
-                st.metric("最小UCS", f"{predictions['Predicted UCS'].min():.2f} MPa")
+                st.metric("Minimum UCS", f"{predictions['Predicted UCS'].min():.2f} MPa")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 3. LCA 计算结果
+            # 3. LCA Results
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🌍 LCA 计算结果")
+            st.subheader("🌍 LCA Results")
             st.dataframe(lca_results)
             
-            # LCA 可视化
-            st.subheader("📊 LCA 指标可视化")
+            # LCA Visualization
+            st.subheader("📊 LCA Indicator Visualization")
             if not lca_results.empty:
                 fig, ax = plt.subplots(figsize=(10, 6))
                 lca_results.plot(kind='bar', ax=ax)
                 plt.xticks(rotation=45)
-                plt.title("环境影响指标对比")
+                plt.title("Environmental Impact Comparison")
                 plt.tight_layout()
                 st.pyplot(fig)
             
-            # 环境影响评估
-            st.subheader("🌱 环境影响评估")
+            # Environmental Impact Assessment
+            st.subheader("🌱 Environmental Impact Assessment")
             if not lca_results.empty:
                 total_impact = lca_results.sum(axis=1)
                 avg_impact = total_impact.mean()
                 
                 if avg_impact < 10:
-                    st.markdown("✅ 环境影响较小")
+                    st.markdown("✅ Low environmental impact")
                 elif avg_impact < 20:
-                    st.markdown("⚠️ 环境影响中等")
+                    st.markdown("⚠️ Medium environmental impact")
                 else:
-                    st.markdown("❌ 环境影响较大")
+                    st.markdown("❌ High environmental impact")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 4. 综合评估
+            # 4. Comprehensive Assessment
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🎯 综合评估")
+            st.subheader("🎯 Comprehensive Assessment")
             
-            # 强度评估
+            # Strength Assessment
             avg_ucs = predictions['Predicted UCS'].mean()
             if avg_ucs >= 25:
-                strength_eval = "✅ 高强度"
+                strength_eval = "✅ High Strength"
             elif avg_ucs >= 15:
-                strength_eval = "⚠️ 中等强度"
+                strength_eval = "⚠️ Medium Strength"
             else:
-                strength_eval = "❌ 低强度"
+                strength_eval = "❌ Low Strength"
             
-            # 环境影响评估
+            # Environmental Impact Assessment
             if not lca_results.empty:
                 avg_impact = lca_results.sum(axis=1).mean()
                 if avg_impact < 10:
-                    env_eval = "✅ 环境友好"
+                    env_eval = "✅ Environmentally Friendly"
                 elif avg_impact < 20:
-                    env_eval = "⚠️ 环境影响中等"
+                    env_eval = "⚠️ Medium Environmental Impact"
                 else:
-                    env_eval = "❌ 环境影响较大"
+                    env_eval = "❌ High Environmental Impact"
             else:
-                env_eval = "⚠️ 环境评估数据不足"
+                env_eval = "⚠️ Insufficient Data for Environmental Assessment"
             
-            # 显示评估结果
+            # Display Assessment Results
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("强度评估", strength_eval)
+                st.metric("Strength Assessment", strength_eval)
             with col2:
-                st.metric("环境评估", env_eval)
+                st.metric("Environmental Assessment", env_eval)
             
-            # 综合建议
-            st.subheader("💡 综合建议")
+            # Comprehensive Recommendations
+            st.subheader("💡 Comprehensive Recommendations")
             if avg_ucs >= 25 and avg_impact < 10:
-                st.markdown("✅ 该配方表现优秀，强度高且环境影响小")
+                st.markdown("✅ Excellent performance: high strength with low environmental impact")
             elif avg_ucs >= 15 and avg_impact < 20:
-                st.markdown("⚠️ 该配方表现良好，可以考虑进一步优化")
+                st.markdown("⚠️ Good performance: consider further optimization")
             else:
-                st.markdown("❌ 建议调整配方参数，提高强度或减少环境影响")
+                st.markdown("❌ Recommend adjusting formulation parameters to improve strength or reduce environmental impact")
             st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 分析方式选择
+    # Analysis Method Selection
     analysis_method = st.radio(
-        "分析方式",
-        options=["文件上传", "手动输入"],
+        "Analysis Method",
+        options=["File Upload", "Manual Input"],
         key="analysis_method"
     )
     
-    if analysis_method == "文件上传":
-        # 上传数据文件
-        cement_file = st.file_uploader("上传水泥数据文件", type=["xlsx"], key="cement_uploader_2")
-        lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_2")
+    if analysis_method == "File Upload":
+        # Upload data files
+        cement_file = st.file_uploader("Upload cement data file", type=["xlsx"], key="cement_uploader_2")
+        lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_2")
         
         if cement_file and lci_file:
-            st.success("文件上传成功！")
+            st.success("Files uploaded successfully!")
             
-            # 读取水泥数据
+            # Read cement data
             df = pd.read_excel(cement_file)
             
-            # 显示可编辑的数据表格
-            st.subheader("水泥数据（可编辑）")
+            # Display editable data table
+            st.subheader("Cement Data (Editable)")
             edited_df = st.data_editor(df, use_container_width=True)
             
-            # 分析参数
-            st.subheader("分析参数")
-            test_size = st.slider("测试集比例", 0.1, 0.5, 0.2)
-            random_state = st.number_input("随机种子", 0, 1000, 42)
+            # Analysis Parameters
+            st.subheader("Analysis Parameters")
+            test_size = st.slider("Test Set Ratio", 0.1, 0.5, 0.2)
+            random_state = st.number_input("Random Seed", 0, 1000, 42)
             
-            # 分析按钮
-            if st.button("开始完整分析"):
-                with st.spinner("正在进行完整分析..."):
-                    # 保存编辑后的数据到临时文件
+            # Analysis Button
+            if st.button("Start Comprehensive Analysis"):
+                with st.spinner("Performing comprehensive analysis..."):
+                    # Save edited data to temporary file
                     import tempfile
                     import os
                     
@@ -988,42 +1002,42 @@ elif selected_page == "完整分析":
                     edited_df.to_excel(tmp_path, index=False)
                     
                     optimizer = UCSOptimizer()
-                    # 先训练模型
+                    # First train model
                     model, metrics = optimizer.train(
                         data_path=tmp_path,
                         test_size=test_size,
                         random_state=random_state
                     )
-                    # 加载 LCI 数据
+                    # Load LCI data
                     optimizer.load_lci_data(lci_file)
-                    # 运行完整分析
+                    # Run full analysis
                     lca_results, lca_metrics = optimizer.run_full_analysis(
                         data_file=tmp_path
                     )
                     
-                    # 清理临时文件
+                    # Clean up temporary file
                     os.unlink(tmp_path)
                     
-                st.success("分析完成！")
+                st.success("Analysis completed!")
                 
-                # 显示分析结果
-                st.subheader("分析结果")
-                st.write("### LCA 计算结果")
+                # Display analysis results
+                st.subheader("Analysis Results")
+                st.write("### LCA Results")
                 st.dataframe(lca_results.head())
     
-    else:  # 手动输入
-        st.subheader("手动输入分析参数")
+    else:  # Manual Input
+        st.subheader("Manual Input of Analysis Parameters")
         
-        # 上传 LCI 数据文件（仍然需要）
-        lci_file = st.file_uploader("上传 LCI 数据文件", type=["xlsx"], key="lci_uploader_3")
+        # Upload LCI data file (still required)
+        lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_3")
         
         if lci_file:
-            st.success("LCI 数据文件上传成功！")
+            st.success("LCI data file uploaded successfully!")
             
-            # 手动输入水泥数据
-            st.subheader("水泥数据")
+            # Manual input of cement data
+            st.subheader("Cement Data")
             
-            # 输入参数
+            # Input parameters
             col1, col2, col3 = st.columns(3)
             
             with col1:
@@ -1044,15 +1058,15 @@ elif selected_page == "完整分析":
                 t = st.number_input("T", min_value=0.0, value=7.0)
                 ucs = st.number_input("UCS", min_value=0.0, value=2.41)
             
-            # 分析参数
-            st.subheader("分析参数")
-            test_size = st.slider("测试集比例", 0.1, 0.5, 0.2)
-            random_state = st.number_input("随机种子", 0, 1000, 42)
+            # Analysis Parameters
+            st.subheader("Analysis Parameters")
+            test_size = st.slider("Test Set Ratio", 0.1, 0.5, 0.2)
+            random_state = st.number_input("Random Seed", 0, 1000, 42)
             
-            # 分析按钮
-            if st.button("开始完整分析"):
-                with st.spinner("正在进行完整分析..."):
-                    # 创建输入数据
+            # Analysis Button
+            if st.button("Start Comprehensive Analysis"):
+                with st.spinner("Performing comprehensive analysis..."):
+                    # Create input data
                     input_data = pd.DataFrame({
                         "Cu": [cu],
                         "Cc": [cc],
@@ -1068,7 +1082,7 @@ elif selected_page == "完整分析":
                         "UCS": [ucs]
                     })
                     
-                    # 保存为临时文件
+                    # Save to temporary file
                     import tempfile
                     import os
                     
@@ -1077,33 +1091,33 @@ elif selected_page == "完整分析":
                     
                     input_data.to_excel(tmp_path, index=False)
                     
-                    # 执行分析
+                    # Execute analysis
                     optimizer = UCSOptimizer()
-                    # 先训练模型
+                    # First train model
                     model, metrics = optimizer.train(
                         data_path=tmp_path,
                         test_size=test_size,
                         random_state=random_state
                     )
-                    # 加载 LCI 数据
+                    # Load LCI data
                     optimizer.load_lci_data(lci_file)
-                    # 运行完整分析
+                    # Run full analysis
                     lca_results, lca_metrics = optimizer.run_full_analysis(
                         data_file=tmp_path
                     )
                     
-                    # 清理临时文件
+                    # Clean up temporary file
                     os.unlink(tmp_path)
                     
-                st.success("分析完成！")
+                st.success("Analysis completed!")
                 
-                # 显示分析结果
-                st.subheader("分析结果")
-                st.write("### LCA 计算结果")
+                # Display analysis results
+                st.subheader("Analysis Results")
+                st.write("### LCA Calculation Results")
                 st.dataframe(lca_results.head())
 
-# 页脚
+# Footer
 st.markdown("""
 ---
-**UCS Optimizer** - 水泥强度预测和环境影响评估工具
+**UCS Optimizer** - Machine Learning-based UCS Prediction and Environmental Impact Assessment Tool
 """)
