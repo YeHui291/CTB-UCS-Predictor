@@ -237,80 +237,159 @@ if selected_page == "首页":
 elif selected_page == "模型训练":
     st.header("模型训练")
     
-    # 文件上传卡片
+    # 数据输入方式选择
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📁 数据上传")
-    uploaded_file = st.file_uploader("上传训练数据文件", type=["xlsx"], key="train_uploader")
+    st.subheader("🔄 数据输入方式")
+    data_input_method = st.radio(
+        "选择数据输入方式",
+        ["文件上传", "手动输入"]
+    )
     st.markdown('</div>', unsafe_allow_html=True)
     
-    if uploaded_file is not None:
-        st.markdown('<div class="success-message">', unsafe_allow_html=True)
-        st.success("文件上传成功！")
+    if data_input_method == "文件上传":
+        # 文件上传卡片
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("📁 数据上传")
+        uploaded_file = st.file_uploader("上传训练数据文件", type=["xlsx"], key="train_uploader")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # 读取数据
-        df = pd.read_excel(uploaded_file)
-        
-        # 初始化 session state 来跟踪列名调整
-        if 'columns_adjusted' not in st.session_state:
-            st.session_state.columns_adjusted = False
-        if 'adjusted_df' not in st.session_state:
-            st.session_state.adjusted_df = None
-        
-        # 列名调整卡片
+        if uploaded_file is not None:
+            st.markdown('<div class="success-message">', unsafe_allow_html=True)
+            st.success("文件上传成功！")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # 读取数据
+            df = pd.read_excel(uploaded_file)
+            use_uploaded_data = True
+            
+            # 初始化 session state 来跟踪列名调整
+            if 'columns_adjusted' not in st.session_state:
+                st.session_state.columns_adjusted = False
+            if 'adjusted_df' not in st.session_state:
+                st.session_state.adjusted_df = None
+            
+            # 列名调整卡片
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("🔧 列名调整")
+            
+            # 显示当前列名
+            st.write("原始列名：")
+            st.code(', '.join([str(col) for col in df.columns]))
+            
+            # 提供列名修改功能
+            st.write("调整列名：")
+            adjusted_columns = []
+            for i, col in enumerate(df.columns):
+                new_col = st.text_input(f"列 {i+1}：{col}", value=str(col), key=f"col_{i}")
+                adjusted_columns.append(new_col)
+            
+            # 应用列名调整
+            if st.button("✅ 应用列名调整"):
+                df.columns = adjusted_columns
+                st.session_state.adjusted_df = df.copy()
+                st.session_state.columns_adjusted = True
+                st.success("列名调整成功！")
+                st.write("新列名：", df.columns.tolist())
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # 使用调整后的数据框（如果有）
+            working_df = st.session_state.adjusted_df if st.session_state.columns_adjusted else df
+            
+            # UCS列设置卡片
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("🎯 UCS列设置")
+            
+            # 自动检测可能的UCS列
+            possible_ucs_columns = []
+            for col in working_df.columns:
+                col_str = str(col).lower()
+                if 'ucs' in col_str or '抗压' in col_str or '强度' in col_str or 'strength' in col_str:
+                    possible_ucs_columns.append(col)
+            
+            # 选择UCS列
+            if possible_ucs_columns:
+                selected_ucs = st.selectbox(
+                    "选择UCS列",
+                    options=working_df.columns.tolist(),
+                    index=working_df.columns.tolist().index(possible_ucs_columns[0]) if possible_ucs_columns[0] in working_df.columns else 0,
+                    help="从检测到的列中选择包含UCS值的列"
+                )
+            else:
+                # 如果没有检测到，让用户从所有列中选择
+                selected_ucs = st.selectbox(
+                    "选择UCS列",
+                    options=working_df.columns.tolist(),
+                    help="从所有列中选择包含UCS值的列"
+                )
+            st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        # 手动输入数据
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🔧 列名调整")
+        st.subheader("📝 手动输入新训练数据")
+        st.write("请在下方表格中填写新的训练数据（系统将自动与默认数据集合并进行训练）：")
         
-        # 显示当前列名
-        st.write("原始列名：")
-        st.code(', '.join([str(col) for col in df.columns]))
+        # 加载默认数据集（在后台）
+        try:
+            default_data_path = "d:/6个模型机器学习/去除D50去掉Fe203-UCS等参数记录12.13.xlsx"
+            default_df = pd.read_excel(default_data_path)
+            st.info(f"已加载默认数据集，包含 {len(default_df)} 条记录")
+        except Exception as e:
+            st.warning(f"无法加载默认数据集：{e}")
+            default_df = pd.DataFrame()
         
-        # 提供列名修改功能
-        st.write("调整列名：")
-        adjusted_columns = []
-        for i, col in enumerate(df.columns):
-            new_col = st.text_input(f"列 {i+1}：{col}", value=str(col), key=f"col_{i}")
-            adjusted_columns.append(new_col)
+        # 创建空的用户输入表格
+        user_input_df = pd.DataFrame({
+            "Cu": [None],
+            "Cc": [None],
+            "TEMP": [None],
+            "D10": [None],
+            "SiO2": [None],
+            "CaO": [None],
+            "Al2O3": [None],
+            "CT": [None],
+            "CTR": [None],
+            "MC": [None],
+            "T": [None],
+            "UCS": [None]
+        })
         
-        # 应用列名调整
-        if st.button("✅ 应用列名调整"):
-            df.columns = adjusted_columns
-            st.session_state.adjusted_df = df.copy()
-            st.session_state.columns_adjusted = True
-            st.success("列名调整成功！")
-            st.write("新列名：", df.columns.tolist())
+        # 显示可编辑的表格（仅用于输入新数据）
+        st.write("**输入新数据：**")
+        user_df = st.data_editor(
+            user_input_df,
+            use_container_width=True,
+            num_rows="dynamic",  # 允许用户添加/删除行
+            column_config={
+                "Cu": st.column_config.NumberColumn("Cu (曲率系数)", min_value=0.0),
+                "Cc": st.column_config.NumberColumn("Cc (不均匀系数)", min_value=0.0),
+                "TEMP": st.column_config.NumberColumn("TEMP (温度 °C)", min_value=0.0),
+                "D10": st.column_config.NumberColumn("D10 (有效粒径 mm)", min_value=0.0),
+                "SiO2": st.column_config.NumberColumn("SiO2 (%)", min_value=0.0),
+                "CaO": st.column_config.NumberColumn("CaO (%)", min_value=0.0),
+                "Al2O3": st.column_config.NumberColumn("Al2O3 (%)", min_value=0.0),
+                "CT": st.column_config.NumberColumn("CT (水泥类型)", min_value=0.0),
+                "CTR": st.column_config.NumberColumn("CTR (水泥-尾矿比)", min_value=0.0, max_value=1.0),
+                "MC": st.column_config.NumberColumn("MC (质量浓度 %)", min_value=0.0, max_value=100.0),
+                "T": st.column_config.NumberColumn("T (固化时间 天)", min_value=0.0),
+                "UCS": st.column_config.NumberColumn("UCS (抗压强度 MPa)", min_value=0.0),
+            }
+        )
         st.markdown('</div>', unsafe_allow_html=True)
+        use_uploaded_data = False
         
-        # 使用调整后的数据框（如果有）
-        working_df = st.session_state.adjusted_df if st.session_state.columns_adjusted else df
+        # 合并默认数据和用户输入数据
+        # 过滤掉用户输入中的空行
+        user_df_clean = user_df.dropna(how='all')
         
-        # UCS列设置卡片
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🎯 UCS列设置")
-        
-        # 自动检测可能的UCS列
-        possible_ucs_columns = []
-        for col in working_df.columns:
-            col_str = str(col).lower()
-            if 'ucs' in col_str or '抗压' in col_str or '强度' in col_str or 'strength' in col_str:
-                possible_ucs_columns.append(col)
-        
-        # 选择UCS列
-        if possible_ucs_columns:
-            selected_ucs = st.selectbox(
-                "选择UCS列",
-                options=working_df.columns.tolist(),
-                index=working_df.columns.tolist().index(possible_ucs_columns[0]) if possible_ucs_columns[0] in working_df.columns else 0,
-                help="从检测到的列中选择包含UCS值的列"
-            )
+        if len(user_df_clean) > 0:
+            # 合并数据
+            working_df = pd.concat([default_df, user_df_clean], ignore_index=True)
+            st.success(f"已合并数据：默认数据集 {len(default_df)} 条 + 用户新数据 {len(user_df_clean)} 条 = 总共 {len(working_df)} 条")
         else:
-            # 如果没有检测到，让用户从所有列中选择
-            selected_ucs = st.selectbox(
-                "选择UCS列",
-                options=working_df.columns.tolist(),
-                help="从所有列中选择包含UCS值的列"
-            )
-        st.markdown('</div>', unsafe_allow_html=True)
+            working_df = default_df
+            st.info(f"使用默认数据集进行训练，共 {len(working_df)} 条记录")
+        
+        selected_ucs = "UCS"
 
         # 数据预览卡片
         st.markdown('<div class="card">', unsafe_allow_html=True)
