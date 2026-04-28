@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 from ucs_optimizer.core.optimizer import UCSOptimizer
 from ucs_optimizer.core.lca_calculator import LCACalculator
 
