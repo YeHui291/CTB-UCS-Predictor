@@ -347,7 +347,7 @@ elif selected_page == "Model Training":
         
         # Load default dataset (in background)
         try:
-            default_data_path = "d:/6个模型机器学习/去除D50去掉Fe203-UCS等参数记录12.13.xlsx"
+            default_data_path = os.path.join(os.path.dirname(__file__), "ucs_optimizer", "data", "sample_cement_data.xlsx")
             default_df = pd.read_excel(default_data_path)
             st.info(f"Default dataset loaded with {len(default_df)} records")
         except Exception as e:
