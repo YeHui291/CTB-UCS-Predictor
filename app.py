@@ -375,7 +375,7 @@ elif selected_page == "Model Training":
         st.write("**Enter New Data:**")
         user_df = st.data_editor(
             user_input_df,
-            use_container_width=True,
+            width='stretch',
             num_rows="dynamic",
             column_config={
                 "Cu": st.column_config.NumberColumn("Cu (Curvature Coefficient)", min_value=0.0),
@@ -412,7 +412,7 @@ elif selected_page == "Model Training":
         # Data Preview Card
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📊 Training Data (Editable)")
-        edited_df = st.data_editor(working_df, use_container_width=True)
+        edited_df = st.data_editor(working_df, width='stretch')
         
         # Data Statistics
         st.subheader("📈 Data Statistics")
@@ -516,7 +516,7 @@ elif selected_page == "Strength Prediction":
             
             # Display editable data table
             st.subheader("📊 Prediction Data (Editable)")
-            edited_df = st.data_editor(df, use_container_width=True)
+            edited_df = st.data_editor(df, width='stretch')
             
             # Predict Button
             if st.button("🚀 Start Prediction"):
@@ -729,7 +729,7 @@ elif selected_page == "LCA Calculation":
             st.write("**Enter LCA Calculation Data:**")
             edited_df = st.data_editor(
                 input_df,
-                use_container_width=True,
+                width='stretch',
                 num_rows="dynamic",
                 column_config={
                     "MC": st.column_config.NumberColumn("MC (Mass Concentration %)", min_value=0.0, max_value=100.0),
@@ -1003,7 +1003,7 @@ elif selected_page == "Comprehensive Analysis":
             
             # Display editable data table
             st.subheader("Cement Data (Editable)")
-            edited_df = st.data_editor(df, use_container_width=True)
+            edited_df = st.data_editor(df, width='stretch')
             
             # Analysis Parameters
             st.subheader("Analysis Parameters")
