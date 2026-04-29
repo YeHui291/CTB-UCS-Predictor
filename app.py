@@ -714,69 +714,89 @@ elif selected_page == "LCA Calculation":
                     st.pyplot(fig)
         
         else:  # Manual Input
+            # Manual Input Card
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("🎯 Manual Input of Parameters")
             
-            # Input parameters
-            col1, col2, col3 = st.columns(3)
+            # Create empty input table
+            input_df = pd.DataFrame({
+                "MC": [20.0],
+                "CTR": [0.1],
+                "UCS": [10.0]
+            })
             
-            with col1:
-                mc1 = st.number_input("MC 1", min_value=0.0, value=20.0, help="Mass Concentration (%)")
-                ctr1 = st.number_input("CTR 1", min_value=0.0, max_value=1.0, value=0.1, help="Cement-Tailings Ratio")
-                ucs1 = st.number_input("UCS 1", min_value=0.0, value=10.0, help="Unconfined Compressive Strength (MPa)")
-            
-            with col2:
-                mc2 = st.number_input("MC 2", min_value=0.0, value=25.0, help="Mass Concentration (%)")
-                ctr2 = st.number_input("CTR 2", min_value=0.0, max_value=1.0, value=0.2, help="Cement-Tailings Ratio")
-                ucs2 = st.number_input("UCS 2", min_value=0.0, value=15.0, help="Unconfined Compressive Strength (MPa)")
-            
-            with col3:
-                mc3 = st.number_input("MC 3", min_value=0.0, value=30.0, help="Mass Concentration (%)")
-                ctr3 = st.number_input("CTR 3", min_value=0.0, max_value=1.0, value=0.3, help="Cement-Tailings Ratio")
-                ucs3 = st.number_input("UCS 3", min_value=0.0, value=20.0, help="Unconfined Compressive Strength (MPa)")
+            # Editable table for data input
+            st.write("**Enter LCA Calculation Data:**")
+            edited_df = st.data_editor(
+                input_df,
+                use_container_width=True,
+                num_rows="dynamic",
+                column_config={
+                    "MC": st.column_config.NumberColumn("MC (Mass Concentration %)", min_value=0.0, max_value=100.0),
+                    "CTR": st.column_config.NumberColumn("CTR (Cement-Tailings Ratio)", min_value=0.0, max_value=1.0),
+                    "UCS": st.column_config.NumberColumn("UCS (Unconfined Compressive Strength MPa)", min_value=0.0),
+                }
+            )
             
             # Calculate Button
             if st.button("🚀 Start Calculation"):
-                with st.spinner("Calculating LCA indicators..."):
-                    lca_calculator = LCACalculator()
-                    lca_calculator.load_lci_data(lci_file)
-                    # Calculate with manual input data
-                    input_df = pd.DataFrame({
-                        "MC": [mc1, mc2, mc3],
-                        "CTR": [ctr1, ctr2, ctr3],
-                        "UCS": [ucs1, ucs2, ucs3]
-                    })
-                    lca_results = lca_calculator.calculate_lca(input_df)
-                    
-                st.markdown('<div class="success-message">', unsafe_allow_html=True)
-                st.success("Calculation completed!")
-                st.markdown('</div>', unsafe_allow_html=True)
+                # Filter out empty rows
+                input_data = edited_df.dropna(how='all')
                 
-                # Display results
-                st.subheader("🏆 LCA Results")
-                st.dataframe(lca_results)
-                
-                # Visualization
-                st.subheader("📈 LCA Indicator Visualization")
-                if not lca_results.empty:
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    lca_results.plot(kind='bar', ax=ax)
-                    plt.xticks(rotation=45)
-                    plt.title("Environmental Impact Comparison")
-                    plt.tight_layout()
-                    st.pyplot(fig)
+                if len(input_data) == 0:
+                    st.warning("Please enter at least one row of data!")
+                else:
+                    with st.spinner("Calculating LCA indicators..."):
+                        lca_calculator = LCACalculator()
+                        lca_calculator.load_lci_data(lci_file)
+                        # Calculate with manual input data
+                        lca_results = lca_calculator.calculate_lca(input_data)
+                        
+                    st.markdown('<div class="success-message">', unsafe_allow_html=True)
+                    st.success("Calculation completed!")
+                    st.markdown('</div>', unsafe_allow_html=True)
                     
-                # Environmental Impact Assessment
-                st.subheader("🌍 Environmental Impact Assessment")
-                if not lca_results.empty:
-                    total_impact = lca_results.sum(axis=1)
-                    avg_impact = total_impact.mean()
+                    # Display results
+                    st.subheader("🏆 LCA Results")
+                    st.dataframe(lca_results)
                     
-                    if avg_impact < 10:
-                        st.markdown("✅ Low environmental impact")
-                    elif avg_impact < 20:
-                        st.markdown("⚠️ Medium environmental impact")
-                    else:
-                        st.markdown("❌ High environmental impact")
+                    # Display calculation statistics
+                    st.subheader("📊 Calculation Statistics")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Number of Calculations", len(lca_results))
+                    with col2:
+                        if not lca_results.empty:
+                            avg_impact = lca_results.sum(axis=1).mean()
+                            st.metric("Average Environmental Impact", f"{avg_impact:.2f}")
+                    
+                    # Visualization
+                    st.subheader("📈 LCA Indicator Visualization")
+                    if not lca_results.empty:
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        lca_results.plot(kind='bar', ax=ax)
+                        plt.xticks(rotation=45)
+                        plt.title("Environmental Impact Comparison")
+                        plt.tight_layout()
+                        st.pyplot(fig)
+                        
+                    # Environmental Impact Assessment
+                    st.subheader("🌍 Environmental Impact Assessment")
+                    if not lca_results.empty:
+                        total_impact = lca_results.sum(axis=1)
+                        avg_impact = total_impact.mean()
+                        
+                        if avg_impact < 10:
+                            st.markdown("✅ Low environmental impact")
+                        elif avg_impact < 20:
+                            st.markdown("⚠️ Medium environmental impact")
+                        else:
+                            st.markdown("❌ High environmental impact")
+                            
+                    # Display input parameters
+                    st.subheader("🔧 Input Parameters")
+                    st.dataframe(input_data)
+            st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Comprehensive Analysis Page
