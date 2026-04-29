@@ -658,30 +658,32 @@ elif selected_page == "Strength Prediction":
 elif selected_page == "LCA Calculation":
     st.header("LCA Calculation")
     
-    # File Upload Card
+    # Calculation Method - Move to top so users can select first
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📁 LCI Data Upload")
-    lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_1")
+    st.subheader("🔄 Calculation Method")
+    calc_method = st.radio(
+        "Select calculation method",
+        options=["File Data", "Manual Input"],
+        key="lca_calc_method"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    if lci_file:
-        st.markdown('<div class="success-message">', unsafe_allow_html=True)
-        st.success("File uploaded successfully!")
-        st.markdown('</div>', unsafe_allow_html=True)
+    if calc_method == "File Data":
+        # File Upload Card
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("📁 LCI Data Upload")
+        lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_1")
         
-        # Display data preview
-        df = pd.read_excel(lci_file)
-        st.subheader("📊 LCI Data Preview")
-        st.dataframe(df.head())
-        
-        # Calculation Method
-        st.subheader("🔄 Calculation Method")
-        calc_method = st.radio(
-            "Select calculation method",
-            options=["File Data", "Manual Input"],
-            key="lca_calc_method"
-        )
-        
-        if calc_method == "File Data":
+        if lci_file:
+            st.markdown('<div class="success-message">', unsafe_allow_html=True)
+            st.success("File uploaded successfully!")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Display data preview
+            df = pd.read_excel(lci_file)
+            st.subheader("📊 LCI Data Preview")
+            st.dataframe(df.head())
+            
             # Calculate Button
             if st.button("🚀 Start Calculation"):
                 with st.spinner("Calculating LCA indicators..."):
@@ -712,92 +714,110 @@ elif selected_page == "LCA Calculation":
                     plt.title("Environmental Impact Comparison")
                     plt.tight_layout()
                     st.pyplot(fig)
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        else:  # Manual Input
-            # Manual Input Card
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🎯 Manual Input of Parameters")
+    else:  # Manual Input
+        # Manual Input Card
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("🎯 Manual Input of Parameters")
+        
+        # LCI Data Upload (optional, use default if not provided)
+        st.subheader("📁 LCI Data (Optional)")
+        lci_file = st.file_uploader("Upload LCI data file (optional, uses default if not provided)", 
+                                   type=["xlsx"], key="lci_uploader_2")
+        
+        # Create empty input table
+        input_df = pd.DataFrame({
+            "MC": [20.0],
+            "CTR": [0.1],
+            "UCS": [10.0]
+        })
+        
+        # Editable table for data input
+        st.write("**Enter LCA Calculation Data:**")
+        edited_df = st.data_editor(
+            input_df,
+            width='stretch',
+            num_rows="dynamic",
+            column_config={
+                "MC": st.column_config.NumberColumn("MC (Mass Concentration %)", min_value=0.0, max_value=100.0),
+                "CTR": st.column_config.NumberColumn("CTR (Cement-Tailings Ratio)", min_value=0.0, max_value=1.0),
+                "UCS": st.column_config.NumberColumn("UCS (Unconfined Compressive Strength MPa)", min_value=0.0),
+            }
+        )
+        
+        # Calculate Button
+        if st.button("🚀 Start Calculation"):
+            # Filter out empty rows
+            input_data = edited_df.dropna(how='all')
             
-            # Create empty input table
-            input_df = pd.DataFrame({
-                "MC": [20.0],
-                "CTR": [0.1],
-                "UCS": [10.0]
-            })
-            
-            # Editable table for data input
-            st.write("**Enter LCA Calculation Data:**")
-            edited_df = st.data_editor(
-                input_df,
-                width='stretch',
-                num_rows="dynamic",
-                column_config={
-                    "MC": st.column_config.NumberColumn("MC (Mass Concentration %)", min_value=0.0, max_value=100.0),
-                    "CTR": st.column_config.NumberColumn("CTR (Cement-Tailings Ratio)", min_value=0.0, max_value=1.0),
-                    "UCS": st.column_config.NumberColumn("UCS (Unconfined Compressive Strength MPa)", min_value=0.0),
-                }
-            )
-            
-            # Calculate Button
-            if st.button("🚀 Start Calculation"):
-                # Filter out empty rows
-                input_data = edited_df.dropna(how='all')
-                
-                if len(input_data) == 0:
-                    st.warning("Please enter at least one row of data!")
-                else:
-                    with st.spinner("Calculating LCA indicators..."):
-                        lca_calculator = LCACalculator()
+            if len(input_data) == 0:
+                st.warning("Please enter at least one row of data!")
+            else:
+                with st.spinner("Calculating LCA indicators..."):
+                    lca_calculator = LCACalculator()
+                    
+                    # Load LCI data - use uploaded file or default
+                    if lci_file:
                         lca_calculator.load_lci_data(lci_file)
-                        # Calculate with manual input data
-                        lca_results = lca_calculator.calculate_lca(input_data)
-                        
-                    st.markdown('<div class="success-message">', unsafe_allow_html=True)
-                    st.success("Calculation completed!")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    # Display results
-                    st.subheader("🏆 LCA Results")
-                    st.dataframe(lca_results)
-                    
-                    # Display calculation statistics
-                    st.subheader("📊 Calculation Statistics")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Number of Calculations", len(lca_results))
-                    with col2:
-                        if not lca_results.empty:
-                            avg_impact = lca_results.sum(axis=1).mean()
-                            st.metric("Average Environmental Impact", f"{avg_impact:.2f}")
-                    
-                    # Visualization
-                    st.subheader("📈 LCA Indicator Visualization")
-                    if not lca_results.empty:
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        lca_results.plot(kind='bar', ax=ax)
-                        plt.xticks(rotation=45)
-                        plt.title("Environmental Impact Comparison")
-                        plt.tight_layout()
-                        st.pyplot(fig)
-                        
-                    # Environmental Impact Assessment
-                    st.subheader("🌍 Environmental Impact Assessment")
-                    if not lca_results.empty:
-                        total_impact = lca_results.sum(axis=1)
-                        avg_impact = total_impact.mean()
-                        
-                        if avg_impact < 10:
-                            st.markdown("✅ Low environmental impact")
-                        elif avg_impact < 20:
-                            st.markdown("⚠️ Medium environmental impact")
+                    else:
+                        # Load default LCI data
+                        default_lci_path = os.path.join(os.path.dirname(__file__), "ucs_optimizer", "data", "sample_lci_data.xlsx")
+                        if os.path.exists(default_lci_path):
+                            lca_calculator.load_lci_data(default_lci_path)
+                            st.info("Using default LCI data")
                         else:
-                            st.markdown("❌ High environmental impact")
-                            
-                    # Display input parameters
-                    st.subheader("🔧 Input Parameters")
-                    st.dataframe(input_data)
-            st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+                            st.error("Please upload an LCI data file or place sample_lci_data.xlsx in the data folder")
+                            st.stop()
+                    
+                    # Calculate with manual input data
+                    lca_results = lca_calculator.calculate_lca(input_data)
+                    
+                st.markdown('<div class="success-message">', unsafe_allow_html=True)
+                st.success("Calculation completed!")
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Display results
+                st.subheader("🏆 LCA Results")
+                st.dataframe(lca_results)
+                
+                # Display calculation statistics
+                st.subheader("📊 Calculation Statistics")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Number of Calculations", len(lca_results))
+                with col2:
+                    if not lca_results.empty:
+                        avg_impact = lca_results.sum(axis=1).mean()
+                        st.metric("Average Environmental Impact", f"{avg_impact:.2f}")
+                
+                # Visualization
+                st.subheader("📈 LCA Indicator Visualization")
+                if not lca_results.empty:
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    lca_results.plot(kind='bar', ax=ax)
+                    plt.xticks(rotation=45)
+                    plt.title("Environmental Impact Comparison")
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                    
+                # Environmental Impact Assessment
+                st.subheader("🌍 Environmental Impact Assessment")
+                if not lca_results.empty:
+                    total_impact = lca_results.sum(axis=1)
+                    avg_impact = total_impact.mean()
+                    
+                    if avg_impact < 10:
+                        st.markdown("✅ Low environmental impact")
+                    elif avg_impact < 20:
+                        st.markdown("⚠️ Medium environmental impact")
+                    else:
+                        st.markdown("❌ High environmental impact")
+                        
+                # Display input parameters
+                st.subheader("🔧 Input Parameters")
+                st.dataframe(input_data)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Comprehensive Analysis Page
 elif selected_page == "Comprehensive Analysis":
