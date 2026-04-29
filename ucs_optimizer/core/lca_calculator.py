@@ -103,67 +103,67 @@ class LCACalculator:
             # 保持默认值
     
     def calculate_lca(self, df, total_mass=1000):
-        """计算LCA指标"""
-        print('开始LCA计算...')
+        """Calculate LCA indicators"""
+        print('Starting LCA calculation...')
         
-        # 1. 各材料质量
-        df["固体质量_kg"] = total_mass * df["MC"] / 100
-        # 修正后的水泥质量计算逻辑
-        df["水泥质量_kg"] = df["固体质量_kg"] * df["CTR"] / (1 + df["CTR"])
-        df["尾矿质量_kg"] = df["固体质量_kg"] - df["水泥质量_kg"]
-        df["水质量_kg"] = total_mass - df["固体质量_kg"]
+        # 1. Material masses
+        df["solid_mass_kg"] = total_mass * df["MC"] / 100
+        # Corrected cement mass calculation logic
+        df["cement_mass_kg"] = df["solid_mass_kg"] * df["CTR"] / (1 + df["CTR"])
+        df["tailings_mass_kg"] = df["solid_mass_kg"] - df["cement_mass_kg"]
+        df["water_mass_kg"] = total_mass - df["solid_mass_kg"]
         
-        # 2. 环境影响 & 成本
-        df["总碳足迹_kgCO2"] = df["水泥质量_kg"] * self.carbon_cement
-        df["总能耗_kWh"] = df["水泥质量_kg"] * self.energy_cement / 1000
-        df["总成本_USD"] = df["水泥质量_kg"] * self.cost_cement + df["水质量_kg"] * self.cost_water
+        # 2. Environmental impact & cost
+        df["total_carbon_kgCO2"] = df["cement_mass_kg"] * self.carbon_cement
+        df["total_energy_kWh"] = df["cement_mass_kg"] * self.energy_cement / 1000
+        df["total_cost_USD"] = df["cement_mass_kg"] * self.cost_cement + df["water_mass_kg"] * self.cost_water
         
-        # 3. 强度归一化指标（论文标准）
+        # 3. Strength-normalized indicators (paper standard)
         if 'UCS' in df.columns:
-            # 过滤掉UCS值为0的样本
+            # Filter out samples with UCS = 0
             ucs_col = 'UCS'
             initial_count = len(df)
             df = df[df[ucs_col] > 0]
             filtered_count = len(df)
             if initial_count > filtered_count:
-                print(f'过滤掉 {initial_count - filtered_count} 个UCS值为0的样本')
+                print(f'Filtered {initial_count - filtered_count} samples with UCS=0')
             
-            df["碳足迹_per_MPa"] = df["总碳足迹_kgCO2"] / df[ucs_col]
-            df["能耗_per_MPa"] = df["总能耗_kWh"] / df[ucs_col]
-            df["成本_per_MPa"] = df["总成本_USD"] / df[ucs_col]
+            df["carbon_per_MPa"] = df["total_carbon_kgCO2"] / df[ucs_col]
+            df["energy_per_MPa"] = df["total_energy_kWh"] / df[ucs_col]
+            df["cost_per_MPa"] = df["total_cost_USD"] / df[ucs_col]
         elif 'UCS (Mpa)' in df.columns:
-            # 过滤掉UCS值为0的样本
+            # Filter out samples with UCS = 0
             ucs_col = 'UCS (Mpa)'
             initial_count = len(df)
             df = df[df[ucs_col] > 0]
             filtered_count = len(df)
             if initial_count > filtered_count:
-                print(f'过滤掉 {initial_count - filtered_count} 个UCS值为0的样本')
+                print(f'Filtered {initial_count - filtered_count} samples with UCS=0')
             
-            df["碳足迹_per_MPa"] = df["总碳足迹_kgCO2"] / df[ucs_col]
-            df["能耗_per_MPa"] = df["总能耗_kWh"] / df[ucs_col]
-            df["成本_per_MPa"] = df["总成本_USD"] / df[ucs_col]
+            df["carbon_per_MPa"] = df["total_carbon_kgCO2"] / df[ucs_col]
+            df["energy_per_MPa"] = df["total_energy_kWh"] / df[ucs_col]
+            df["cost_per_MPa"] = df["total_cost_USD"] / df[ucs_col]
         else:
-            print('未找到UCS列，无法计算归一化指标')
+            print('UCS column not found, cannot calculate normalized indicators')
         
-        print('LCA计算完成！')
+        print('LCA calculation completed!')
         return df
     
     def get_lca_metrics(self, df):
-        """获取LCA指标统计信息"""
+        """Get LCA metrics statistics"""
         if not df.empty:
             metrics = {
-                '平均水泥质量': df["水泥质量_kg"].mean(),
-                '平均总碳足迹': df["总碳足迹_kgCO2"].mean(),
-                '平均总能耗': df["总能耗_kWh"].mean(),
-                '平均总成本': df["总成本_USD"].mean()
+                'avg_cement_mass': df["cement_mass_kg"].mean(),
+                'avg_total_carbon': df["total_carbon_kgCO2"].mean(),
+                'avg_total_energy': df["total_energy_kWh"].mean(),
+                'avg_total_cost': df["total_cost_USD"].mean()
             }
             
-            if '碳足迹_per_MPa' in df.columns:
+            if 'carbon_per_MPa' in df.columns:
                 metrics.update({
-                    '平均碳足迹_per_MPa': df["碳足迹_per_MPa"].mean(),
-                    '平均能耗_per_MPa': df["能耗_per_MPa"].mean(),
-                    '平均成本_per_MPa': df["成本_per_MPa"].mean()
+                    'avg_carbon_per_MPa': df["carbon_per_MPa"].mean(),
+                    'avg_energy_per_MPa': df["energy_per_MPa"].mean(),
+                    'avg_cost_per_MPa': df["cost_per_MPa"].mean()
                 })
             
             return metrics
