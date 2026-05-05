@@ -344,15 +344,13 @@ elif selected_page == "Model Training":
         # Manual Input
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📝 Manual Input for New Training Data")
-        st.write("Enter new training data below (will be merged with default dataset):")
+        st.write("Enter new training data below:")
         
-        # Load default dataset (in background)
+        # Load default dataset (in background, hidden from user)
         try:
             default_data_path = os.path.join(os.path.dirname(__file__), "ucs_optimizer", "data", "sample_cement_data.xlsx")
             default_df = pd.read_excel(default_data_path)
-            st.info(f"Default dataset loaded with {len(default_df)} records")
         except Exception as e:
-            st.warning(f"Failed to load default dataset: {e}")
             default_df = pd.DataFrame()
         
         # Create empty input table
@@ -395,24 +393,26 @@ elif selected_page == "Model Training":
         st.markdown('</div>', unsafe_allow_html=True)
         use_uploaded_data = False
         
-        # Merge default data with user input
-        # Filter out empty rows
+        # Merge default data with user input (hidden from user)
         user_df_clean = user_df.dropna(how='all')
         
         if len(user_df_clean) > 0:
-            # Merge data
             working_df = pd.concat([default_df, user_df_clean], ignore_index=True)
-            st.success(f"Data merged: {len(default_df)} default + {len(user_df_clean)} new = {len(working_df)} total records")
         else:
             working_df = default_df
-            st.info(f"Using default dataset for training: {len(working_df)} records")
         
         selected_ucs = "UCS"
 
-        # Data Preview Card
+        # Data Preview Card - only show user input data, not the merged data
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📊 Training Data (Editable)")
-        edited_df = st.data_editor(working_df, width='stretch')
+        st.subheader("📊 Your Input Data")
+        edited_user_df = st.data_editor(user_df.dropna(how='all'), width='stretch')
+        
+        # Update working_df with edited user data
+        if len(edited_user_df) > 0:
+            working_df = pd.concat([default_df, edited_user_df], ignore_index=True)
+        else:
+            working_df = default_df
         
         # Data Statistics
         st.subheader("📈 Data Statistics")
@@ -438,14 +438,14 @@ elif selected_page == "Model Training":
         # Train Button
         if st.button("🚀 Start Training"):
             with st.spinner("Training model..."):
-                # Save edited data to temporary file
+                # Save working data (including hidden default data) to temporary file
                 import tempfile
                 import os
                 
                 with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
                     tmp_path = tmp.name
                 
-                edited_df.to_excel(tmp_path, index=False)
+                working_df.to_excel(tmp_path, index=False)
                 
                 optimizer = UCSOptimizer()
                 # Train model
