@@ -8,7 +8,7 @@ from ucs_optimizer.core.lca_calculator import LCACalculator
 
 # Page Configuration
 st.set_page_config(
-    page_title="UCS Optimizer",
+    page_title="Sustainable CTB Mixture Designer",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -178,7 +178,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Page Title
-st.title("UCS Optimizer")
+st.title("Sustainable CTB Mixture Designer")
 st.markdown("**Machine Learning-based UCS Prediction and Environmental Impact Assessment**")
 
 # Sidebar Navigation
@@ -203,7 +203,7 @@ with st.sidebar:
 
 # Home Page
 if selected_page == "Home":
-    st.header("About UCS Optimizer")
+    st.header("About Sustainable CTB Mixture Designer")
     
     # Card Layout
     col1, col2 = st.columns(2)
@@ -1160,5 +1160,5 @@ elif selected_page == "Comprehensive Analysis":
 # Footer
 st.markdown("""
 ---
-**UCS Optimizer** - Machine Learning-based UCS Prediction and Environmental Impact Assessment Tool
+**Sustainable CTB Mixture Designer** - Machine Learning-based UCS Prediction and Environmental Impact Assessment Tool
 """)
