@@ -1,6 +1,6 @@
-# UCS Optimizer
+# 金属矿山充填体强度与碳排放智能预测系统 V1.0.0
 
-UCS Optimizer 是一个用于水泥强度预测和环境影响评估的工具，基于 Gradient Boosting 算法和生命周期评估 (LCA) 方法。
+金属矿山充填体强度与碳排放智能预测系统 是一个用于水泥强度预测和环境影响评估的工具，基于 Gradient Boosting 算法和生命周期评估 (LCA) 方法。
 
 ## 功能特点
 

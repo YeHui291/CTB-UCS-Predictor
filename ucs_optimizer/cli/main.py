@@ -6,7 +6,7 @@ from ..core.optimizer import UCSOptimizer
 
 def parse_args():
     """解析命令行参数"""
-    parser = argparse.ArgumentParser(description='UCS Optimizer - 水泥强度预测和环境影响评估工具')
+    parser = argparse.ArgumentParser(description='金属矿山充填体强度与碳排放智能预测系统 - 水泥强度预测和环境影响评估工具')
     
     # 子命令
     subparsers = parser.add_subparsers(dest='command', help='可用命令')

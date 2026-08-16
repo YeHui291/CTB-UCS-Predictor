@@ -1,2 +1,2 @@
-# UCS Optimizer Core Module
+# 金属矿山充填体强度与碳排放智能预测系统 Core Module
 # 核心功能模块初始化
