@@ -1,7 +1,5 @@
 # UCS Optimizer
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 UCS Optimizer 是一个用于水泥强度预测和环境影响评估的工具，基于 Gradient Boosting 算法和生命周期评估 (LCA) 方法。
 
 ## 功能特点
@@ -200,12 +198,8 @@ LCA指标统计:
 
 欢迎提交 issue 和 pull request 来改进这个项目。
 
-## 许可证
-
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
-
 ## 联系方式
 
-- **作者**：Your Name
-- **邮箱**：your.email@example.com
-- **GitHub**：[https://github.com/yourusername/ucs-optimizer](https://github.com/yourusername/ucs-optimizer)
+- **作者**：叶晖
+- **邮箱**：1976590483@qq.com
+- **GitHub**：[https://github.com/YeHui291/ucs-optimizer](https://github.com/YeHui291/ucs-optimizer)
