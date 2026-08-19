@@ -112,6 +112,45 @@ st.markdown("""
         background-color: #3182ce;
     }
     
+    /* select_slider 美化 */
+    .stSelectSlider label {
+        color: #2d3748;
+        font-weight: 500;
+    }
+    .stSelectSlider [data-testid="stSelectSlider"] > div {
+        background-color: white;
+        border-radius: 8px;
+        padding: 12px 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+    }
+    .stSelectSlider [data-testid="stSelectSlider"] [role="slider"] {
+        background-color: #3182ce;
+    }
+    
+    /* Tabs 美化 */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: #f7fafc;
+        padding: 6px;
+        border-radius: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-weight: 500;
+        color: #718096;
+        transition: all 0.2s ease;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #1e3a5f;
+        color: white !important;
+    }
+    .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+        background-color: #e2e8f0;
+        color: #2d3748;
+    }
+    
     .sidebar {
         background-color: #1a202c;
         color: #e2e8f0;
@@ -830,7 +869,7 @@ elif selected_page == "Comprehensive Analysis":
         "comp_train_samples", "comp_test_samples", "comp_metrics",
         "comp_predictions", "comp_lca_results", "comp_strength_eval",
         "comp_env_eval", "comp_avg_ucs", "comp_avg_impact",
-        "comp_is_manual",
+        "comp_is_manual", "comp_last_tab",
     ):
         if _key not in st.session_state:
             st.session_state[_key] = None
@@ -838,22 +877,24 @@ elif selected_page == "Comprehensive Analysis":
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🔄 Complete Analysis Workflow")
 
-    # ---------------- 分析方式选择（radio 全局唯一 key） ----------------
-    analysis_method = st.radio(
-        "Analysis Method",
-        options=["File Upload", "Manual Input"],
-        key="comp_analysis_method",
-    )
+    # ---------------- 分析方式选择（tabs 替代 radio，更现代） ----------------
+    tab_upload, tab_manual = st.tabs(["📁 File Upload", "📝 Manual Input"])
+    analysis_method = "File Upload"  # 默认
 
-    # ---------------- 分析参数（slider / number_input 全局唯一 key） ----------------
+    # ---------------- 分析参数（select_slider / number_input 全局唯一 key） ----------------
     st.subheader("⚙️ Analysis Parameters")
     col_cp1, col_cp2 = st.columns(2)
     with col_cp1:
-        test_size = st.slider(
-            "Test Set Ratio", 0.1, 0.5, 0.2,
-            key="comp_test_size",
+        _ts_labels = ["10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"]
+        _ts_values = [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+        test_size_label = st.select_slider(
+            "Test Set Ratio",
+            options=_ts_labels,
+            value="20%",
+            key="comp_test_size_slider",
             help="Proportion of data used for model evaluation",
         )
+        test_size = _ts_values[_ts_labels.index(test_size_label)]
     with col_cp2:
         random_state = st.number_input(
             "Random Seed", 0, 1000, 42,
@@ -864,15 +905,15 @@ elif selected_page == "Comprehensive Analysis":
     cement_df_for_lca: pd.DataFrame | None = None
     lci_file = None
 
-    # ==================== 方式一：文件上传 ====================
-    if analysis_method == "File Upload":
+    # ==================== Tab 1：文件上传 ====================
+    with tab_upload:
         st.subheader("📁 Upload Data")
         cement_file = st.file_uploader(
             "Upload cement strength data file",
             type=["xlsx"],
             key="comp_cement_uploader",
         )
-        lci_file = st.file_uploader(
+        lci_file_up = st.file_uploader(
             "Upload LCI data file",
             type=["xlsx"],
             key="comp_lci_uploader",
@@ -884,14 +925,16 @@ elif selected_page == "Comprehensive Analysis":
             edited_df = st.data_editor(cement_raw, use_container_width=True,
                                        key="comp_cement_data_editor")
             cement_df_for_lca = edited_df.copy()
-            if lci_file is not None:
+            lci_file = lci_file_up
+            st.session_state.comp_last_tab = "File Upload"
+            if lci_file_up is not None:
                 st.success("Files uploaded successfully!")
 
-    # ==================== 方式二：手动输入 ====================
-    else:  # Manual Input
+    # ==================== Tab 2：手动输入 ====================
+    with tab_manual:
         st.subheader("📝 Manual Input of Cement Parameters")
 
-        lci_file = st.file_uploader(
+        lci_file_man = st.file_uploader(
             "Upload LCI data file",
             type=["xlsx"],
             key="comp_lci_uploader_manual",
@@ -920,8 +963,13 @@ elif selected_page == "Comprehensive Analysis":
             "CTR": [CTR], "MC": [MC], "T": [T], "UCS": [UCS],
         })
         st.dataframe(cement_df_for_lca, use_container_width=True)
-        if lci_file is not None:
+        lci_file = lci_file_man
+        st.session_state.comp_last_tab = "Manual Input"
+        if lci_file_man is not None:
             st.success("LCI data file uploaded successfully!")
+
+    # 根据 session_state 判断当前激活的模式（tabs 切换后的下次重渲染仍可靠）
+    analysis_method = st.session_state.get("comp_last_tab", "File Upload")
 
     # ---------------- 执行分析按钮 ----------------
     ready_to_run = (
@@ -1067,7 +1115,7 @@ elif selected_page == "Comprehensive Analysis":
             c2.metric("MSE",      f"{metrics['mse']:.2f}")
             c3.metric("Training Samples", st.session_state.comp_train_samples)
             c4.metric("Test Samples",     st.session_state.comp_test_samples)
-        st.markdown('</div>')
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # 2) 强度预测
         st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -1079,7 +1127,7 @@ elif selected_page == "Comprehensive Analysis":
         c2.metric("Average UCS", f"{predictions['Predicted UCS'].mean():.2f} MPa")
         c3.metric("Maximum UCS", f"{predictions['Predicted UCS'].max():.2f} MPa")
         c4.metric("Minimum UCS", f"{predictions['Predicted UCS'].min():.2f} MPa")
-        st.markdown('</div>')
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # 3) LCA 结果
         st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -1103,7 +1151,7 @@ elif selected_page == "Comprehensive Analysis":
                 st.markdown("⚠️ Medium environmental impact")
             else:
                 st.markdown("❌ High environmental impact")
-        st.markdown('</div>')
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # 4) 综合评价
         st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -1119,9 +1167,9 @@ elif selected_page == "Comprehensive Analysis":
             st.markdown("⚠️ Good performance: consider further optimization")
         else:
             st.markdown("❌ Recommend adjusting formulation parameters to improve strength or reduce environmental impact")
-        st.markdown('</div>')
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('</div>')
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Footer
 st.markdown("""
