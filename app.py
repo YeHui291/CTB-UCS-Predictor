@@ -131,8 +131,8 @@ st.markdown("""
         display: none;
     }
     
-    /* Radio 美化：改为 segmented pill 风格（兼容新旧 Streamlit DOM） */
-    .stRadio > div[role="radiogroup"] {
+    /* Radio 美化：改为 segmented pill 风格（仅主内容区，不影响侧边栏导航） */
+    section[data-testid="stAppViewContainer"] .stRadio > div[role="radiogroup"] {
         display: flex !important;
         flex-direction: row !important;
         gap: 4px !important;
@@ -142,7 +142,7 @@ st.markdown("""
         border: 1px solid #e2e8f0 !important;
         margin-bottom: 16px !important;
     }
-    .stRadio > div[role="radiogroup"] > div[role="radio"] {
+    section[data-testid="stAppViewContainer"] .stRadio > div[role="radiogroup"] > div[role="radio"] {
         flex: 1 !important;
         text-align: center !important;
         padding: 8px 16px !important;
@@ -152,16 +152,16 @@ st.markdown("""
         font-weight: 500 !important;
         color: #718096 !important;
     }
-    .stRadio > div[role="radiogroup"] > div[role="radio"]:hover {
+    section[data-testid="stAppViewContainer"] .stRadio > div[role="radiogroup"] > div[role="radio"]:hover {
         background-color: #e2e8f0 !important;
         color: #2d3748 !important;
     }
-    .stRadio > div[role="radiogroup"] > div[aria-checked="true"] {
+    section[data-testid="stAppViewContainer"] .stRadio > div[role="radiogroup"] > div[aria-checked="true"] {
         background-color: #1e3a5f !important;
         color: white !important;
     }
-    /* 隐藏 radio 圆点 */
-    .stRadio input[type="radio"] {
+    /* 隐藏主内容区 radio 圆点 */
+    section[data-testid="stAppViewContainer"] .stRadio input[type="radio"] {
         display: none !important;
     }
     
@@ -1187,32 +1187,32 @@ elif selected_page == "Comprehensive Analysis":
             st.subheader("📊 Key Indicators")
             col_lca1, col_lca2, col_lca3, col_lca4, col_lca5 = st.columns(5)
 
-            def _safe_stat(col, fn):
-                return float(fn(lca_results[col])) if col in lca_results.columns else 0.0
+            def _safe_stat(col):
+                return float(lca_results[col].mean()) if col in lca_results.columns else 0.0
 
             col_lca1.metric(
                 "Total Carbon",
-                f"{_safe_stat('total_carbon_kgCO2', 'mean'):.2f} kg CO₂",
+                f"{_safe_stat('total_carbon_kgCO2'):.2f} kg CO₂",
                 help="平均总碳足迹",
             )
             col_lca2.metric(
                 "Total Energy",
-                f"{_safe_stat('total_energy_kWh', 'mean'):.2f} kWh",
+                f"{_safe_stat('total_energy_kWh'):.2f} kWh",
                 help="平均总能耗",
             )
             col_lca3.metric(
                 "Carbon per MPa",
-                f"{_safe_stat('carbon_per_MPa', 'mean'):.2f}",
+                f"{_safe_stat('carbon_per_MPa'):.2f}",
                 help="单位强度碳足迹 (kg CO₂/MPa)",
             )
             col_lca4.metric(
                 "Energy per MPa",
-                f"{_safe_stat('energy_per_MPa', 'mean'):.2f}",
+                f"{_safe_stat('energy_per_MPa'):.2f}",
                 help="单位强度能耗 (kWh/MPa)",
             )
             col_lca5.metric(
                 "Total Cost",
-                f"{_safe_stat('total_cost_USD', 'mean'):.4f} $",
+                f"{_safe_stat('total_cost_USD'):.4f} $",
                 help="平均总成本",
             )
 
