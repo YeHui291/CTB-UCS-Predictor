@@ -830,6 +830,7 @@ elif selected_page == "Comprehensive Analysis":
         "comp_train_samples", "comp_test_samples", "comp_metrics",
         "comp_predictions", "comp_lca_results", "comp_strength_eval",
         "comp_env_eval", "comp_avg_ucs", "comp_avg_impact",
+        "comp_is_manual",
     ):
         if _key not in st.session_state:
             st.session_state[_key] = None
@@ -880,7 +881,7 @@ elif selected_page == "Comprehensive Analysis":
         if cement_file is not None:
             st.subheader("Cement Data (Editable)")
             cement_raw = pd.read_excel(cement_file)
-            edited_df = st.data_editor(cement_raw, width="stretch",
+            edited_df = st.data_editor(cement_raw, use_container_width=True,
                                        key="comp_cement_data_editor")
             cement_df_for_lca = edited_df.copy()
             if lci_file is not None:
@@ -918,7 +919,7 @@ elif selected_page == "Comprehensive Analysis":
             "SiO2": [SiO2], "CaO": [CaO], "Al2O3": [Al2O3], "CT": [CT],
             "CTR": [CTR], "MC": [MC], "T": [T], "UCS": [UCS],
         })
-        st.dataframe(cement_df_for_lca, width="stretch")
+        st.dataframe(cement_df_for_lca, use_container_width=True)
         if lci_file is not None:
             st.success("LCI data file uploaded successfully!")
 
@@ -939,85 +940,105 @@ elif selected_page == "Comprehensive Analysis":
             st.caption("请先上传水泥数据并上传 LCI 文件。")
 
     if run_clicked:
-        with st.spinner("Performing comprehensive analysis (train → predict → LCA)..."):
-            import tempfile
+        import tempfile
 
-            # 水泥数据 → 临时 Excel
-            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-                cement_path = tmp.name
-            cement_df_for_lca.to_excel(cement_path, index=False)
+        # 写入临时文件
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            cement_path = tmp.name
+        cement_df_for_lca.to_excel(cement_path, index=False)
 
-            # LCI 数据 → 临时 Excel
-            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-                lci_path = tmp.name
-            pd.read_excel(lci_file).to_excel(lci_path, index=False)
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            lci_path = tmp.name
+        pd.read_excel(lci_file).to_excel(lci_path, index=False)
 
-            try:
-                optimizer = UCSOptimizer()
-                # 1) 训练
-                model, metrics = optimizer.train(
-                    data_path=cement_path,
-                    test_size=test_size,
-                    random_state=random_state,
-                )
-                # 2) 预测
-                predictions = optimizer.predict(input_data=cement_path)
+        try:
+            is_manual = (analysis_method == "Manual Input")
 
-                # 3) LCA
-                lca_calc = LCACalculator()
-                lca_calc.load_lci_data(lci_path)
-                ucs_vals = predictions["Predicted UCS"].values
-                _mc  = (cement_df_for_lca["MC"].values
-                        if "MC" in cement_df_for_lca.columns
-                        else [76.0] * len(ucs_vals))
-                _ctr = (cement_df_for_lca["CTR"].values
-                        if "CTR" in cement_df_for_lca.columns
-                        else [0.25] * len(ucs_vals))
-                lca_input = pd.DataFrame({"MC": _mc, "CTR": _ctr, "UCS": ucs_vals})
-                lca_results = lca_calc.calculate_lca(lca_input)
-
-                # ---------- 强度评价 ----------
-                avg_ucs = float(predictions["Predicted UCS"].mean())
-                if avg_ucs > 5:
-                    strength_eval = "✅ High Strength"
-                elif avg_ucs >= 1:
-                    strength_eval = "⚠️ Medium Strength"
-                else:
-                    strength_eval = "❌ Low Strength"
-
-                # ---------- 环境评价：只取环境类指标 per MPa，不含成本 ----------
-                if not lca_results.empty:
-                    env_cols = [c for c in ("carbon_per_MPa", "energy_per_MPa")
-                                if c in lca_results.columns]
-                    avg_impact = (float(lca_results[env_cols].sum(axis=1).mean())
-                                  if env_cols else 0.0)
-                    if avg_impact < 60:
-                        env_eval = "✅ Environmentally Friendly"
-                    elif avg_impact < 200:
-                        env_eval = "⚠️ Medium Environmental Impact"
-                    else:
-                        env_eval = "❌ High Environmental Impact"
-                else:
-                    avg_impact = 0.0
-                    env_eval = "⚠️ Insufficient Data"
-
-                # 保存到 session_state：下次重渲染仍能读取
+            # ---- 执行分析：手动输入跳过训练，文件上传走全流程 ----
+            if is_manual:
+                with st.spinner("Running LCA assessment for manual input..."):
+                    ucs_val = float(cement_df_for_lca["UCS"].values[0])
+                    predictions = pd.DataFrame({"Predicted UCS": [ucs_val]})
+                    metrics = {"r2": "N/A", "mse": "N/A"}
+                    n_total = 1
+            else:
                 n_total = len(cement_df_for_lca)
+                with st.spinner("Training model and running comprehensive analysis..."):
+                    optimizer = UCSOptimizer()
+                    model, metrics = optimizer.train(
+                        data_path=cement_path,
+                        test_size=test_size,
+                        random_state=random_state,
+                    )
+                    predictions = optimizer.predict(input_data=cement_path)
+
+            # ---- LCA 计算 ----
+            lca_calc = LCACalculator()
+            lca_calc.load_lci_data(lci_path)
+            ucs_vals = predictions["Predicted UCS"].values
+            _mc  = (cement_df_for_lca["MC"].values
+                    if "MC" in cement_df_for_lca.columns
+                    else [76.0] * len(ucs_vals))
+            _ctr = (cement_df_for_lca["CTR"].values
+                    if "CTR" in cement_df_for_lca.columns
+                    else [0.25] * len(ucs_vals))
+            lca_input = pd.DataFrame({"MC": _mc, "CTR": _ctr, "UCS": ucs_vals})
+            lca_results = lca_calc.calculate_lca(lca_input)
+
+            # ---- 强度评价（充填体阈值：<1低 / 1-5中 / >5高） ----
+            avg_ucs = float(predictions["Predicted UCS"].mean())
+            if avg_ucs > 5:
+                strength_eval = "✅ High Strength"
+            elif avg_ucs >= 1:
+                strength_eval = "⚠️ Medium Strength"
+            else:
+                strength_eval = "❌ Low Strength"
+
+            # ---- 环境评价（仅环境类指标 per MPa：<60低 / 60-200中 / >200高） ----
+            if not lca_results.empty:
+                env_cols = [c for c in ("carbon_per_MPa", "energy_per_MPa")
+                            if c in lca_results.columns]
+                avg_impact = (float(lca_results[env_cols].sum(axis=1).mean())
+                              if env_cols else 0.0)
+                if avg_impact < 60:
+                    env_eval = "✅ Environmentally Friendly"
+                elif avg_impact < 200:
+                    env_eval = "⚠️ Medium Environmental Impact"
+                else:
+                    env_eval = "❌ High Environmental Impact"
+            else:
+                avg_impact = 0.0
+                env_eval = "⚠️ Insufficient Data"
+
+            # ---- 保存 session_state ----
+            if is_manual:
+                st.session_state.comp_train_samples = 0
+                st.session_state.comp_test_samples = 0
+            else:
                 st.session_state.comp_train_samples = int(n_total * (1 - test_size))
                 st.session_state.comp_test_samples  = int(n_total * test_size)
-                st.session_state.comp_metrics = metrics
-                st.session_state.comp_predictions = predictions
-                st.session_state.comp_lca_results = lca_results
-                st.session_state.comp_avg_ucs = avg_ucs
-                st.session_state.comp_avg_impact = avg_impact
-                st.session_state.comp_strength_eval = strength_eval
-                st.session_state.comp_env_eval = env_eval
-            finally:
-                for p in (cement_path, lci_path):
+            st.session_state.comp_metrics = metrics
+            st.session_state.comp_predictions = predictions
+            st.session_state.comp_lca_results = lca_results
+            st.session_state.comp_avg_ucs = avg_ucs
+            st.session_state.comp_avg_impact = avg_impact
+            st.session_state.comp_strength_eval = strength_eval
+            st.session_state.comp_env_eval = env_eval
+            st.session_state.comp_is_manual = is_manual
+
+            if is_manual:
+                st.info("Manual Input mode: model training skipped, UCS value used directly for LCA.")
+            st.success("Comprehensive analysis completed!")
+
+        except Exception as e:
+            st.error(f"Analysis failed: {e}")
+        finally:
+            for p in (cement_path, lci_path):
+                try:
                     if os.path.exists(p):
                         os.unlink(p)
-
-        st.success("Comprehensive analysis completed!")
+                except Exception:
+                    pass
 
     # ---------------- 结果展示（每次重渲染都从 session_state 读，不丢失） ----------------
     if st.session_state.comp_metrics is not None:
@@ -1028,23 +1049,30 @@ elif selected_page == "Comprehensive Analysis":
         avg_impact  = st.session_state.comp_avg_impact
         strength_eval = st.session_state.comp_strength_eval
         env_eval      = st.session_state.comp_env_eval
+        is_manual     = st.session_state.comp_is_manual
 
         st.subheader("🏆 Analysis Results")
 
         # 1) 模型性能
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📊 Model Performance")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("R² Score", f"{metrics['r2']:.2f}")
-        c2.metric("MSE",      f"{metrics['mse']:.2f}")
-        c3.metric("Training Samples", st.session_state.comp_train_samples)
-        c4.metric("Test Samples",     st.session_state.comp_test_samples)
+        if is_manual:
+            st.info("Model training skipped in Manual Input mode — R²/MSE not applicable.")
+            c1, c2 = st.columns(2)
+            c1.metric("R² Score", "N/A")
+            c2.metric("MSE", "N/A")
+        else:
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("R² Score", f"{metrics['r2']:.2f}")
+            c2.metric("MSE",      f"{metrics['mse']:.2f}")
+            c3.metric("Training Samples", st.session_state.comp_train_samples)
+            c4.metric("Test Samples",     st.session_state.comp_test_samples)
         st.markdown('</div>')
 
         # 2) 强度预测
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("💪 Strength Prediction Results")
-        st.dataframe(predictions)
+        st.dataframe(predictions, use_container_width=True)
         st.subheader("📈 Prediction Statistics")
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Number of Predictions", len(predictions))
@@ -1056,7 +1084,7 @@ elif selected_page == "Comprehensive Analysis":
         # 3) LCA 结果
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("🌍 LCA Results")
-        st.dataframe(lca_results)
+        st.dataframe(lca_results, use_container_width=True)
 
         st.subheader("📊 LCA Indicator Visualization")
         if not lca_results.empty:
