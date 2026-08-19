@@ -641,9 +641,9 @@ elif selected_page == "Strength Prediction":
                 st.metric("Predicted UCS", f"{predicted_ucs:.2f} MPa")
             with col2:
                 # Strength grade assessment
-                if predicted_ucs >= 25:
+                if predicted_ucs > 5:
                     st.metric("Strength Grade", "High Strength")
-                elif predicted_ucs >= 15:
+                elif predicted_ucs >= 1:
                     st.metric("Strength Grade", "Medium Strength")
                 else:
                     st.metric("Strength Grade", "Low Strength")
@@ -788,7 +788,8 @@ elif selected_page == "LCA Calculation":
                     st.metric("Number of Calculations", len(lca_results))
                 with col2:
                     if not lca_results.empty:
-                        avg_impact = lca_results.sum(axis=1).mean()
+                        env_cols = ['carbon_per_MPa', 'energy_per_MPa']
+                        avg_impact = lca_results[env_cols].sum(axis=1).mean()
                         st.metric("Average Environmental Impact", f"{avg_impact:.2f}")
                 
                 # Visualization
@@ -804,12 +805,13 @@ elif selected_page == "LCA Calculation":
                 # Environmental Impact Assessment
                 st.subheader("🌍 Environmental Impact Assessment")
                 if not lca_results.empty:
-                    total_impact = lca_results.sum(axis=1)
+                    env_cols = ['carbon_per_MPa', 'energy_per_MPa']
+                    total_impact = lca_results[env_cols].sum(axis=1)
                     avg_impact = total_impact.mean()
                     
-                    if avg_impact < 10:
+                    if avg_impact < 60:
                         st.markdown("✅ Low environmental impact")
-                    elif avg_impact < 20:
+                    elif avg_impact < 200:
                         st.markdown("⚠️ Medium environmental impact")
                     else:
                         st.markdown("❌ High environmental impact")
@@ -822,340 +824,276 @@ elif selected_page == "LCA Calculation":
 # Comprehensive Analysis Page
 elif selected_page == "Comprehensive Analysis":
     st.header("Comprehensive Analysis")
-    
-    # Comprehensive Analysis Card
+
+    # ---------------- session_state 初始化：保存分析结果 ----------------
+    for _key in (
+        "comp_train_samples", "comp_test_samples", "comp_metrics",
+        "comp_predictions", "comp_lca_results", "comp_strength_eval",
+        "comp_env_eval", "comp_avg_ucs", "comp_avg_impact",
+    ):
+        if _key not in st.session_state:
+            st.session_state[_key] = None
+
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🔄 Complete Analysis Workflow")
-    
-    # Upload Data Files
-    st.subheader("📁 Upload Data")
-    cement_file = st.file_uploader("Upload cement strength data file", type=["xlsx"], key="cement_uploader_1")
-    lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_2")
-    
-    if cement_file and lci_file:
-        st.markdown('<div class="success-message">', unsafe_allow_html=True)
-        st.success("Files uploaded successfully!")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Analysis Parameters
-        st.subheader("⚙️ Analysis Parameters")
-        col1, col2 = st.columns(2)
-        with col1:
-            test_size = st.slider("Test Set Ratio", 0.1, 0.5, 0.2, help="Proportion of data used for model evaluation")
-        with col2:
-            random_state = st.number_input("Random Seed", 0, 1000, 42, help="Controls randomness of data splitting")
-        
-        # Start Analysis Button
-        if st.button("🚀 Start Comprehensive Analysis"):
-            with st.spinner("Performing comprehensive analysis..."):
-                # Save files to temporary locations
-                import tempfile
-                import os
-                
-                # Save cement strength data
-                with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-                    cement_path = tmp.name
-                df_cement = pd.read_excel(cement_file)
-                df_cement.to_excel(cement_path, index=False)
-                
-                # Save LCI data
-                with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-                    lci_path = tmp.name
-                df_lci = pd.read_excel(lci_file)
-                df_lci.to_excel(lci_path, index=False)
-                
-                # 1. Train model
-                optimizer = UCSOptimizer()
-                model, metrics = optimizer.train(
-                    data_path=cement_path,
-                    test_size=test_size,
-                    random_state=random_state
-                )
-                
-                # 2. Predict strength
-                predictions = optimizer.predict(input_data=cement_path)
-                
-                # 3. Calculate LCA
-                lca_calculator = LCACalculator()
-                lca_calculator.load_lci_data(lci_path)
-                # Extract UCS values from predictions
-                ucs_values = predictions['Predicted UCS'].values
-                # Create data for LCA calculation
-                lca_input = pd.DataFrame({
-                    "MC": df_cement['MC'] if 'MC' in df_cement.columns else [76.0] * len(ucs_values),
-                    "CTR": df_cement['CTR'] if 'CTR' in df_cement.columns else [0.25] * len(ucs_values),
-                    "UCS": ucs_values
-                })
-                lca_results = lca_calculator.calculate_lca(lca_input)
-                
-                # Clean up temporary files
-                os.unlink(cement_path)
-                os.unlink(lci_path)
-                
-            st.markdown('<div class="success-message">', unsafe_allow_html=True)
-            st.success("Comprehensive analysis completed!")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Display analysis results
-            st.subheader("🏆 Analysis Results")
-            
-            # 1. Model Performance
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("📊 Model Performance")
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("R² Score", f"{metrics['r2']:.2f}")
-            with col2:
-                st.metric("MSE", f"{metrics['mse']:.2f}")
-            with col3:
-                st.metric("Training Samples", f"{int(len(df_cement) * (1 - test_size))}")
-            with col4:
-                st.metric("Test Samples", f"{int(len(df_cement) * test_size)}")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # 2. Strength Prediction Results
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("💪 Strength Prediction Results")
-            st.dataframe(predictions)
-            
-            # Prediction Statistics
-            st.subheader("📈 Prediction Statistics")
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Number of Predictions", len(predictions))
-            with col2:
-                st.metric("Average UCS", f"{predictions['Predicted UCS'].mean():.2f} MPa")
-            with col3:
-                st.metric("Maximum UCS", f"{predictions['Predicted UCS'].max():.2f} MPa")
-            with col4:
-                st.metric("Minimum UCS", f"{predictions['Predicted UCS'].min():.2f} MPa")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # 3. LCA Results
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🌍 LCA Results")
-            st.dataframe(lca_results)
-            
-            # LCA Visualization
-            st.subheader("📊 LCA Indicator Visualization")
-            if not lca_results.empty:
-                fig, ax = plt.subplots(figsize=(10, 6))
-                lca_results.plot(kind='bar', ax=ax)
-                plt.xticks(rotation=45)
-                plt.title("Environmental Impact Comparison")
-                plt.tight_layout()
-                st.pyplot(fig)
-            
-            # Environmental Impact Assessment
-            st.subheader("🌱 Environmental Impact Assessment")
-            if not lca_results.empty:
-                total_impact = lca_results.sum(axis=1)
-                avg_impact = total_impact.mean()
-                
-                if avg_impact < 10:
-                    st.markdown("✅ Low environmental impact")
-                elif avg_impact < 20:
-                    st.markdown("⚠️ Medium environmental impact")
-                else:
-                    st.markdown("❌ High environmental impact")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # 4. Comprehensive Assessment
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("🎯 Comprehensive Assessment")
-            
-            # Strength Assessment
-            avg_ucs = predictions['Predicted UCS'].mean()
-            if avg_ucs >= 25:
-                strength_eval = "✅ High Strength"
-            elif avg_ucs >= 15:
-                strength_eval = "⚠️ Medium Strength"
-            else:
-                strength_eval = "❌ Low Strength"
-            
-            # Environmental Impact Assessment
-            if not lca_results.empty:
-                avg_impact = lca_results.sum(axis=1).mean()
-                if avg_impact < 10:
-                    env_eval = "✅ Environmentally Friendly"
-                elif avg_impact < 20:
-                    env_eval = "⚠️ Medium Environmental Impact"
-                else:
-                    env_eval = "❌ High Environmental Impact"
-            else:
-                env_eval = "⚠️ Insufficient Data for Environmental Assessment"
-            
-            # Display Assessment Results
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Strength Assessment", strength_eval)
-            with col2:
-                st.metric("Environmental Assessment", env_eval)
-            
-            # Comprehensive Recommendations
-            st.subheader("💡 Comprehensive Recommendations")
-            if avg_ucs >= 25 and avg_impact < 10:
-                st.markdown("✅ Excellent performance: high strength with low environmental impact")
-            elif avg_ucs >= 15 and avg_impact < 20:
-                st.markdown("⚠️ Good performance: consider further optimization")
-            else:
-                st.markdown("❌ Recommend adjusting formulation parameters to improve strength or reduce environmental impact")
-            st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Analysis Method Selection
+
+    # ---------------- 分析方式选择（radio 全局唯一 key） ----------------
     analysis_method = st.radio(
         "Analysis Method",
         options=["File Upload", "Manual Input"],
-        key="analysis_method"
+        key="comp_analysis_method",
     )
-    
+
+    # ---------------- 分析参数（slider / number_input 全局唯一 key） ----------------
+    st.subheader("⚙️ Analysis Parameters")
+    col_cp1, col_cp2 = st.columns(2)
+    with col_cp1:
+        test_size = st.slider(
+            "Test Set Ratio", 0.1, 0.5, 0.2,
+            key="comp_test_size",
+            help="Proportion of data used for model evaluation",
+        )
+    with col_cp2:
+        random_state = st.number_input(
+            "Random Seed", 0, 1000, 42,
+            key="comp_random_state",
+            help="Controls randomness of data splitting",
+        )
+
+    cement_df_for_lca: pd.DataFrame | None = None
+    lci_file = None
+
+    # ==================== 方式一：文件上传 ====================
     if analysis_method == "File Upload":
-        # Upload data files
-        cement_file = st.file_uploader("Upload cement data file", type=["xlsx"], key="cement_uploader_2")
-        lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_2")
-        
-        if cement_file and lci_file:
-            st.success("Files uploaded successfully!")
-            
-            # Read cement data
-            df = pd.read_excel(cement_file)
-            
-            # Display editable data table
+        st.subheader("📁 Upload Data")
+        cement_file = st.file_uploader(
+            "Upload cement strength data file",
+            type=["xlsx"],
+            key="comp_cement_uploader",
+        )
+        lci_file = st.file_uploader(
+            "Upload LCI data file",
+            type=["xlsx"],
+            key="comp_lci_uploader",
+        )
+
+        if cement_file is not None:
             st.subheader("Cement Data (Editable)")
-            edited_df = st.data_editor(df, width='stretch')
-            
-            # Analysis Parameters
-            st.subheader("Analysis Parameters")
-            test_size = st.slider("Test Set Ratio", 0.1, 0.5, 0.2)
-            random_state = st.number_input("Random Seed", 0, 1000, 42)
-            
-            # Analysis Button
-            if st.button("Start Comprehensive Analysis"):
-                with st.spinner("Performing comprehensive analysis..."):
-                    # Save edited data to temporary file
-                    import tempfile
-                    import os
-                    
-                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-                        tmp_path = tmp.name
-                    
-                    edited_df.to_excel(tmp_path, index=False)
-                    
-                    optimizer = UCSOptimizer()
-                    # First train model
-                    model, metrics = optimizer.train(
-                        data_path=tmp_path,
-                        test_size=test_size,
-                        random_state=random_state
-                    )
-                    # Load LCI data
-                    optimizer.load_lci_data(lci_file)
-                    # Run full analysis
-                    lca_results, lca_metrics = optimizer.run_full_analysis(
-                        data_file=tmp_path
-                    )
-                    
-                    # Clean up temporary file
-                    os.unlink(tmp_path)
-                    
-                st.success("Analysis completed!")
-                
-                # Display analysis results
-                st.subheader("Analysis Results")
-                st.write("### LCA Results")
-                st.dataframe(lca_results.head())
-    
+            cement_raw = pd.read_excel(cement_file)
+            edited_df = st.data_editor(cement_raw, width="stretch",
+                                       key="comp_cement_data_editor")
+            cement_df_for_lca = edited_df.copy()
+            if lci_file is not None:
+                st.success("Files uploaded successfully!")
+
+    # ==================== 方式二：手动输入 ====================
     else:  # Manual Input
-        st.subheader("Manual Input of Analysis Parameters")
-        
-        # Upload LCI data file (still required)
-        lci_file = st.file_uploader("Upload LCI data file", type=["xlsx"], key="lci_uploader_3")
-        
-        if lci_file:
+        st.subheader("📝 Manual Input of Cement Parameters")
+
+        lci_file = st.file_uploader(
+            "Upload LCI data file",
+            type=["xlsx"],
+            key="comp_lci_uploader_manual",
+        )
+
+        col_ca, col_cb, col_cc = st.columns(3)
+        with col_ca:
+            Cu  = st.number_input("Cu",  min_value=0.0, value=12.7,  key="comp_manual_Cu")
+            Cc  = st.number_input("Cc",  min_value=0.0, value=1.3,   key="comp_manual_Cc")
+            TEM = st.number_input("TEM", min_value=0.0, value=25.0,  key="comp_manual_TEM")
+            D10 = st.number_input("D10", min_value=0.0, value=0.005, key="comp_manual_D10")
+        with col_cb:
+            SiO2  = st.number_input("SiO2",  min_value=0.0, value=29.11, key="comp_manual_SiO2")
+            CaO   = st.number_input("CaO",   min_value=0.0, value=32.65, key="comp_manual_CaO")
+            Al2O3 = st.number_input("Al2O3", min_value=0.0, value=0.37,  key="comp_manual_Al2O3")
+            CT    = st.number_input("CT",    min_value=0.0, value=32.5,  key="comp_manual_CT")
+        with col_cc:
+            CTR = st.number_input("CTR", min_value=0.0, max_value=1.0, value=0.25, key="comp_manual_CTR")
+            MC  = st.number_input("MC",  min_value=0.0, max_value=100.0, value=76.0, key="comp_manual_MC")
+            T   = st.number_input("T",   min_value=0.0, value=7.0,  key="comp_manual_T")
+            UCS = st.number_input("UCS", min_value=0.0, value=2.41, key="comp_manual_UCS")
+
+        cement_df_for_lca = pd.DataFrame({
+            "Cu": [Cu], "Cc": [Cc], "TEM": [TEM], "D10": [D10],
+            "SiO2": [SiO2], "CaO": [CaO], "Al2O3": [Al2O3], "CT": [CT],
+            "CTR": [CTR], "MC": [MC], "T": [T], "UCS": [UCS],
+        })
+        st.dataframe(cement_df_for_lca, width="stretch")
+        if lci_file is not None:
             st.success("LCI data file uploaded successfully!")
-            
-            # Manual input of cement data
-            st.subheader("Cement Data")
-            
-            # Input parameters
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                cu = st.number_input("Cu", min_value=0.0, value=12.7)
-                cc = st.number_input("Cc", min_value=0.0, value=1.3)
-                tem = st.number_input("TEM", min_value=0.0, value=25.0)
-                d10 = st.number_input("D10", min_value=0.0, value=0.005)
-            
-            with col2:
-                sio2 = st.number_input("SiO2", min_value=0.0, value=29.11)
-                cao = st.number_input("CaO", min_value=0.0, value=32.65)
-                al2o3 = st.number_input("Al2O3", min_value=0.0, value=0.37)
-                ct = st.number_input("CT", min_value=0.0, value=32.5)
-            
-            with col3:
-                ctr = st.number_input("CTR", min_value=0.0, max_value=1.0, value=0.25)
-                mc = st.number_input("MC", min_value=0.0, max_value=100.0, value=76.0)
-                t = st.number_input("T", min_value=0.0, value=7.0)
-                ucs = st.number_input("UCS", min_value=0.0, value=2.41)
-            
-            # Analysis Parameters
-            st.subheader("Analysis Parameters")
-            test_size = st.slider("Test Set Ratio", 0.1, 0.5, 0.2)
-            random_state = st.number_input("Random Seed", 0, 1000, 42)
-            
-            # Analysis Button
-            if st.button("Start Comprehensive Analysis"):
-                with st.spinner("Performing comprehensive analysis..."):
-                    # Create input data
-                    input_data = pd.DataFrame({
-                        "Cu": [cu],
-                        "Cc": [cc],
-                        "TEM": [tem],
-                        "D10": [d10],
-                        "SiO2": [sio2],
-                        "CaO": [cao],
-                        "Al2O3": [al2o3],
-                        "CT": [ct],
-                        "CTR": [ctr],
-                        "MC": [mc],
-                        "T": [t],
-                        "UCS": [ucs]
-                    })
-                    
-                    # Save to temporary file
-                    import tempfile
-                    import os
-                    
-                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-                        tmp_path = tmp.name
-                    
-                    input_data.to_excel(tmp_path, index=False)
-                    
-                    # Execute analysis
-                    optimizer = UCSOptimizer()
-                    # First train model
-                    model, metrics = optimizer.train(
-                        data_path=tmp_path,
-                        test_size=test_size,
-                        random_state=random_state
-                    )
-                    # Load LCI data
-                    optimizer.load_lci_data(lci_file)
-                    # Run full analysis
-                    lca_results, lca_metrics = optimizer.run_full_analysis(
-                        data_file=tmp_path
-                    )
-                    
-                    # Clean up temporary file
-                    os.unlink(tmp_path)
-                    
-                st.success("Analysis completed!")
-                
-                # Display analysis results
-                st.subheader("Analysis Results")
-                st.write("### LCA Calculation Results")
-                st.dataframe(lca_results.head())
+
+    # ---------------- 执行分析按钮 ----------------
+    ready_to_run = (
+        cement_df_for_lca is not None and not cement_df_for_lca.empty
+        and lci_file is not None
+    )
+    col_btn1, col_btn2 = st.columns([1, 4])
+    with col_btn1:
+        run_clicked = st.button(
+            "🚀 Start Comprehensive Analysis",
+            key="comp_run_btn",
+            disabled=not ready_to_run,
+        )
+    with col_btn2:
+        if not ready_to_run:
+            st.caption("请先上传水泥数据并上传 LCI 文件。")
+
+    if run_clicked:
+        with st.spinner("Performing comprehensive analysis (train → predict → LCA)..."):
+            import tempfile
+
+            # 水泥数据 → 临时 Excel
+            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+                cement_path = tmp.name
+            cement_df_for_lca.to_excel(cement_path, index=False)
+
+            # LCI 数据 → 临时 Excel
+            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+                lci_path = tmp.name
+            pd.read_excel(lci_file).to_excel(lci_path, index=False)
+
+            try:
+                optimizer = UCSOptimizer()
+                # 1) 训练
+                model, metrics = optimizer.train(
+                    data_path=cement_path,
+                    test_size=test_size,
+                    random_state=random_state,
+                )
+                # 2) 预测
+                predictions = optimizer.predict(input_data=cement_path)
+
+                # 3) LCA
+                lca_calc = LCACalculator()
+                lca_calc.load_lci_data(lci_path)
+                ucs_vals = predictions["Predicted UCS"].values
+                _mc  = (cement_df_for_lca["MC"].values
+                        if "MC" in cement_df_for_lca.columns
+                        else [76.0] * len(ucs_vals))
+                _ctr = (cement_df_for_lca["CTR"].values
+                        if "CTR" in cement_df_for_lca.columns
+                        else [0.25] * len(ucs_vals))
+                lca_input = pd.DataFrame({"MC": _mc, "CTR": _ctr, "UCS": ucs_vals})
+                lca_results = lca_calc.calculate_lca(lca_input)
+
+                # ---------- 强度评价 ----------
+                avg_ucs = float(predictions["Predicted UCS"].mean())
+                if avg_ucs > 5:
+                    strength_eval = "✅ High Strength"
+                elif avg_ucs >= 1:
+                    strength_eval = "⚠️ Medium Strength"
+                else:
+                    strength_eval = "❌ Low Strength"
+
+                # ---------- 环境评价：只取环境类指标 per MPa，不含成本 ----------
+                if not lca_results.empty:
+                    env_cols = [c for c in ("carbon_per_MPa", "energy_per_MPa")
+                                if c in lca_results.columns]
+                    avg_impact = (float(lca_results[env_cols].sum(axis=1).mean())
+                                  if env_cols else 0.0)
+                    if avg_impact < 60:
+                        env_eval = "✅ Environmentally Friendly"
+                    elif avg_impact < 200:
+                        env_eval = "⚠️ Medium Environmental Impact"
+                    else:
+                        env_eval = "❌ High Environmental Impact"
+                else:
+                    avg_impact = 0.0
+                    env_eval = "⚠️ Insufficient Data"
+
+                # 保存到 session_state：下次重渲染仍能读取
+                n_total = len(cement_df_for_lca)
+                st.session_state.comp_train_samples = int(n_total * (1 - test_size))
+                st.session_state.comp_test_samples  = int(n_total * test_size)
+                st.session_state.comp_metrics = metrics
+                st.session_state.comp_predictions = predictions
+                st.session_state.comp_lca_results = lca_results
+                st.session_state.comp_avg_ucs = avg_ucs
+                st.session_state.comp_avg_impact = avg_impact
+                st.session_state.comp_strength_eval = strength_eval
+                st.session_state.comp_env_eval = env_eval
+            finally:
+                for p in (cement_path, lci_path):
+                    if os.path.exists(p):
+                        os.unlink(p)
+
+        st.success("Comprehensive analysis completed!")
+
+    # ---------------- 结果展示（每次重渲染都从 session_state 读，不丢失） ----------------
+    if st.session_state.comp_metrics is not None:
+        metrics     = st.session_state.comp_metrics
+        predictions = st.session_state.comp_predictions
+        lca_results = st.session_state.comp_lca_results
+        avg_ucs     = st.session_state.comp_avg_ucs
+        avg_impact  = st.session_state.comp_avg_impact
+        strength_eval = st.session_state.comp_strength_eval
+        env_eval      = st.session_state.comp_env_eval
+
+        st.subheader("🏆 Analysis Results")
+
+        # 1) 模型性能
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("📊 Model Performance")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("R² Score", f"{metrics['r2']:.2f}")
+        c2.metric("MSE",      f"{metrics['mse']:.2f}")
+        c3.metric("Training Samples", st.session_state.comp_train_samples)
+        c4.metric("Test Samples",     st.session_state.comp_test_samples)
+        st.markdown('</div>')
+
+        # 2) 强度预测
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("💪 Strength Prediction Results")
+        st.dataframe(predictions)
+        st.subheader("📈 Prediction Statistics")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Number of Predictions", len(predictions))
+        c2.metric("Average UCS", f"{predictions['Predicted UCS'].mean():.2f} MPa")
+        c3.metric("Maximum UCS", f"{predictions['Predicted UCS'].max():.2f} MPa")
+        c4.metric("Minimum UCS", f"{predictions['Predicted UCS'].min():.2f} MPa")
+        st.markdown('</div>')
+
+        # 3) LCA 结果
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("🌍 LCA Results")
+        st.dataframe(lca_results)
+
+        st.subheader("📊 LCA Indicator Visualization")
+        if not lca_results.empty:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            lca_results.plot(kind="bar", ax=ax)
+            plt.xticks(rotation=45)
+            plt.title("Environmental Impact Comparison")
+            plt.tight_layout()
+            st.pyplot(fig)
+
+        st.subheader("🌱 Environmental Impact Assessment")
+        if not lca_results.empty:
+            if avg_impact < 60:
+                st.markdown("✅ Low environmental impact")
+            elif avg_impact < 200:
+                st.markdown("⚠️ Medium environmental impact")
+            else:
+                st.markdown("❌ High environmental impact")
+        st.markdown('</div>')
+
+        # 4) 综合评价
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("🎯 Comprehensive Assessment")
+        c1, c2 = st.columns(2)
+        c1.metric("Strength Assessment",      strength_eval)
+        c2.metric("Environmental Assessment", env_eval)
+
+        st.subheader("💡 Comprehensive Recommendations")
+        if avg_ucs > 5 and avg_impact < 60:
+            st.markdown("✅ Excellent performance: high strength with low environmental impact")
+        elif avg_ucs >= 1 and avg_impact < 200:
+            st.markdown("⚠️ Good performance: consider further optimization")
+        else:
+            st.markdown("❌ Recommend adjusting formulation parameters to improve strength or reduce environmental impact")
+        st.markdown('</div>')
+
+    st.markdown('</div>')
 
 # Footer
 st.markdown("""
