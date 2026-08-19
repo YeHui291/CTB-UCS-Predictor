@@ -9,6 +9,30 @@ class LCACalculator:
         self.cost_cement = 0.084    # $ / kg 水泥
         self.cost_water = 0.001     # $ / kg 水
         
+    def set_lci_parameters(self, carbon_cement=None, energy_cement=None,
+                           cost_cement=None, cost_water=None):
+        """直接设置 LCI 参数，无需上传文件
+        
+        Parameters
+        ----------
+        carbon_cement : float
+            水泥碳排放系数 (kg CO2 / kg 水泥)
+        energy_cement : float
+            水泥能耗系数 (kWh / ton 水泥)
+        cost_cement : float
+            水泥成本 ($ / kg 水泥)
+        cost_water : float
+            水成本 ($ / kg 水)
+        """
+        if carbon_cement is not None:
+            self.carbon_cement = carbon_cement
+        if energy_cement is not None:
+            self.energy_cement = energy_cement
+        if cost_cement is not None:
+            self.cost_cement = cost_cement
+        if cost_water is not None:
+            self.cost_water = cost_water
+
     def load_lci_data(self, lci_file):
         """加载生命周期清单数据"""
         # 检查是否为文件对象（Streamlit上传的文件）

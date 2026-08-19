@@ -112,43 +112,59 @@ st.markdown("""
         background-color: #3182ce;
     }
     
-    /* select_slider 美化 */
-    .stSelectSlider label {
-        color: #2d3748;
-        font-weight: 500;
-    }
-    .stSelectSlider [data-testid="stSelectSlider"] > div {
-        background-color: white;
-        border-radius: 8px;
-        padding: 12px 16px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        border: 1px solid #e2e8f0;
-    }
-    .stSelectSlider [data-testid="stSelectSlider"] [role="slider"] {
+    /* slider 美化 */
+    .stSlider [data-testid="stSlider"] > div > div > div {
         background-color: #3182ce;
+        height: 6px;
+        border-radius: 3px;
+    }
+    .stSlider [data-testid="stSlider"] [role="slider"] {
+        background-color: #1e3a5f;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(30, 58, 95, 0.4);
+        border: none;
+    }
+    /* 隐藏滑块上方的数值浮动徽章 */
+    .stSlider [data-testid="stSlider"] > div > div > div::before {
+        display: none;
     }
     
-    /* Tabs 美化 */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+    /* Radio 美化：改为 segmented pill 风格 */
+    .stRadio [data-testid="stRadio"] > div {
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        padding: 4px;
         background-color: #f7fafc;
-        padding: 6px;
         border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: none;
+        margin-bottom: 16px;
     }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 6px;
-        padding: 8px 20px;
+    .stRadio [data-testid="stRadio"] > div > label {
+        flex: 1;
+        text-align: center;
+        padding: 8px 16px;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: all 0.2s ease;
         font-weight: 500;
         color: #718096;
-        transition: all 0.2s ease;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #1e3a5f;
-        color: white !important;
-    }
-    .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+    .stRadio [data-testid="stRadio"] > div > label:hover {
         background-color: #e2e8f0;
         color: #2d3748;
+    }
+    .stRadio [data-testid="stRadio"] [aria-checked="true"] + label,
+    .stRadio [data-testid="stRadio"] > div:has(input[aria-checked="true"]) > label {
+        background-color: #1e3a5f;
+        color: white;
+    }
+    /* 隐藏 radio 圆点 */
+    .stRadio [data-testid="stRadio"] input[type="radio"] {
+        display: none;
     }
     
     .sidebar {
@@ -877,24 +893,31 @@ elif selected_page == "Comprehensive Analysis":
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🔄 Complete Analysis Workflow")
 
-    # ---------------- 分析方式选择（tabs 替代 radio，更现代） ----------------
-    tab_upload, tab_manual = st.tabs(["📁 File Upload", "📝 Manual Input"])
-    analysis_method = "File Upload"  # 默认
+    # ---------------- 水泥数据输入方式 ----------------
+    analysis_method = st.radio(
+        "Cement Data Input",
+        options=["File Upload", "Manual Input"],
+        key="comp_analysis_method",
+        horizontal=True,
+    )
 
-    # ---------------- 分析参数（select_slider / number_input 全局唯一 key） ----------------
+    # ---------------- LCI 数据输入方式 ----------------
+    lci_source = st.radio(
+        "LCI Data Input",
+        options=["File Upload", "Manual Input"],
+        key="comp_lci_source",
+        horizontal=True,
+    )
+
+    # ---------------- 分析参数 ----------------
     st.subheader("⚙️ Analysis Parameters")
     col_cp1, col_cp2 = st.columns(2)
     with col_cp1:
-        _ts_labels = ["10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"]
-        _ts_values = [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
-        test_size_label = st.select_slider(
-            "Test Set Ratio",
-            options=_ts_labels,
-            value="20%",
-            key="comp_test_size_slider",
+        test_size = st.slider(
+            "Test Set Ratio", 0.1, 0.5, 0.2,
+            key="comp_test_size",
             help="Proportion of data used for model evaluation",
         )
-        test_size = _ts_values[_ts_labels.index(test_size_label)]
     with col_cp2:
         random_state = st.number_input(
             "Random Seed", 0, 1000, 42,
@@ -902,44 +925,24 @@ elif selected_page == "Comprehensive Analysis":
             help="Controls randomness of data splitting",
         )
 
+    # ---------------- 水泥数据 ----------------
     cement_df_for_lca: pd.DataFrame | None = None
-    lci_file = None
 
-    # ==================== Tab 1：文件上传 ====================
-    with tab_upload:
-        st.subheader("📁 Upload Data")
+    if analysis_method == "File Upload":
+        st.subheader("📁 Cement Strength Data")
         cement_file = st.file_uploader(
             "Upload cement strength data file",
             type=["xlsx"],
             key="comp_cement_uploader",
         )
-        lci_file_up = st.file_uploader(
-            "Upload LCI data file",
-            type=["xlsx"],
-            key="comp_lci_uploader",
-        )
-
         if cement_file is not None:
-            st.subheader("Cement Data (Editable)")
             cement_raw = pd.read_excel(cement_file)
             edited_df = st.data_editor(cement_raw, use_container_width=True,
                                        key="comp_cement_data_editor")
             cement_df_for_lca = edited_df.copy()
-            lci_file = lci_file_up
-            st.session_state.comp_last_tab = "File Upload"
-            if lci_file_up is not None:
-                st.success("Files uploaded successfully!")
 
-    # ==================== Tab 2：手动输入 ====================
-    with tab_manual:
+    else:  # Manual Input
         st.subheader("📝 Manual Input of Cement Parameters")
-
-        lci_file_man = st.file_uploader(
-            "Upload LCI data file",
-            type=["xlsx"],
-            key="comp_lci_uploader_manual",
-        )
-
         col_ca, col_cb, col_cc = st.columns(3)
         with col_ca:
             Cu  = st.number_input("Cu",  min_value=0.0, value=12.7,  key="comp_manual_Cu")
@@ -963,19 +966,59 @@ elif selected_page == "Comprehensive Analysis":
             "CTR": [CTR], "MC": [MC], "T": [T], "UCS": [UCS],
         })
         st.dataframe(cement_df_for_lca, use_container_width=True)
-        lci_file = lci_file_man
-        st.session_state.comp_last_tab = "Manual Input"
-        if lci_file_man is not None:
-            st.success("LCI data file uploaded successfully!")
 
-    # 根据 session_state 判断当前激活的模式（tabs 切换后的下次重渲染仍可靠）
-    analysis_method = st.session_state.get("comp_last_tab", "File Upload")
+    # ---------------- LCI 数据 ----------------
+    lci_file = None
+    lci_manual = None
+
+    if lci_source == "File Upload":
+        st.subheader("📁 Upload LCI Data File")
+        lci_file = st.file_uploader(
+            "Upload LCI data file (xlsx)",
+            type=["xlsx"],
+            key="comp_lci_uploader",
+        )
+    else:  # Manual Input
+        st.subheader("📝 Manual Input of LCI Parameters")
+        col_l1, col_l2 = st.columns(2)
+        with col_l1:
+            carbon_cement = st.number_input(
+                "Cement Carbon Factor (kg CO₂ / kg cement)",
+                min_value=0.0, value=0.82, step=0.01,
+                key="comp_lci_carbon",
+                help="水泥碳排放系数",
+            )
+            energy_cement = st.number_input(
+                "Cement Energy Factor (kWh / ton cement)",
+                min_value=0.0, value=115.0, step=1.0,
+                key="comp_lci_energy",
+                help="水泥能耗系数",
+            )
+        with col_l2:
+            cost_cement = st.number_input(
+                "Cement Cost ($ / kg cement)",
+                min_value=0.0, value=0.084, step=0.001,
+                key="comp_lci_cost_cement",
+                help="水泥成本",
+            )
+            cost_water = st.number_input(
+                "Water Cost ($ / kg water)",
+                min_value=0.0, value=0.001, step=0.0005,
+                key="comp_lci_cost_water",
+                help="水成本",
+            )
+        lci_manual = {
+            "carbon_cement": carbon_cement,
+            "energy_cement": energy_cement,
+            "cost_cement": cost_cement,
+            "cost_water": cost_water,
+        }
 
     # ---------------- 执行分析按钮 ----------------
-    ready_to_run = (
-        cement_df_for_lca is not None and not cement_df_for_lca.empty
-        and lci_file is not None
-    )
+    has_cement = cement_df_for_lca is not None and not cement_df_for_lca.empty
+    has_lci = (lci_file is not None) or (lci_manual is not None)
+    ready_to_run = has_cement and has_lci
+
     col_btn1, col_btn2 = st.columns([1, 4])
     with col_btn1:
         run_clicked = st.button(
@@ -985,19 +1028,27 @@ elif selected_page == "Comprehensive Analysis":
         )
     with col_btn2:
         if not ready_to_run:
-            st.caption("请先上传水泥数据并上传 LCI 文件。")
+            tips = []
+            if not has_cement:
+                tips.append("请先提供水泥数据")
+            if not has_lci:
+                tips.append("请先提供 LCI 数据")
+            st.caption("；".join(tips) + "。")
 
     if run_clicked:
         import tempfile
 
-        # 写入临时文件
+        # 写入水泥临时文件
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
             cement_path = tmp.name
         cement_df_for_lca.to_excel(cement_path, index=False)
 
-        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-            lci_path = tmp.name
-        pd.read_excel(lci_file).to_excel(lci_path, index=False)
+        # LCI 临时文件（仅当文件上传模式）
+        lci_path = None
+        if lci_file is not None:
+            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+                lci_path = tmp.name
+            pd.read_excel(lci_file).to_excel(lci_path, index=False)
 
         try:
             is_manual = (analysis_method == "Manual Input")
@@ -1020,9 +1071,16 @@ elif selected_page == "Comprehensive Analysis":
                     )
                     predictions = optimizer.predict(input_data=cement_path)
 
-            # ---- LCA 计算 ----
+            # ---- LCA 计算（文件上传 → load_lci_data；手动 → set_lci_parameters） ----
             lca_calc = LCACalculator()
-            lca_calc.load_lci_data(lci_path)
+            if lci_path is not None:
+                lca_calc.load_lci_data(lci_path)
+            else:
+                lca_calc.set_lci_parameters(**lci_manual)
+                st.info(f"LCI params (manual): carbon={lca_calc.carbon_cement}, "
+                        f"energy={lca_calc.energy_cement}, "
+                        f"cost_cement={lca_calc.cost_cement}, "
+                        f"cost_water={lca_calc.cost_water}")
             ucs_vals = predictions["Predicted UCS"].values
             _mc  = (cement_df_for_lca["MC"].values
                     if "MC" in cement_df_for_lca.columns
@@ -1082,6 +1140,8 @@ elif selected_page == "Comprehensive Analysis":
             st.error(f"Analysis failed: {e}")
         finally:
             for p in (cement_path, lci_path):
+                if p is None:
+                    continue
                 try:
                     if os.path.exists(p):
                         os.unlink(p)
