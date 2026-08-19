@@ -131,40 +131,38 @@ st.markdown("""
         display: none;
     }
     
-    /* Radio 美化：改为 segmented pill 风格 */
-    .stRadio [data-testid="stRadio"] > div {
-        display: flex;
-        flex-direction: row;
-        gap: 4px;
-        padding: 4px;
-        background-color: #f7fafc;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        box-shadow: none;
-        margin-bottom: 16px;
+    /* Radio 美化：改为 segmented pill 风格（兼容新旧 Streamlit DOM） */
+    .stRadio > div[role="radiogroup"] {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 4px !important;
+        padding: 4px !important;
+        background-color: #f7fafc !important;
+        border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        margin-bottom: 16px !important;
     }
-    .stRadio [data-testid="stRadio"] > div > label {
-        flex: 1;
-        text-align: center;
-        padding: 8px 16px;
-        border-radius: 7px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-weight: 500;
-        color: #718096;
+    .stRadio > div[role="radiogroup"] > div[role="radio"] {
+        flex: 1 !important;
+        text-align: center !important;
+        padding: 8px 16px !important;
+        border-radius: 7px !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        font-weight: 500 !important;
+        color: #718096 !important;
     }
-    .stRadio [data-testid="stRadio"] > div > label:hover {
-        background-color: #e2e8f0;
-        color: #2d3748;
+    .stRadio > div[role="radiogroup"] > div[role="radio"]:hover {
+        background-color: #e2e8f0 !important;
+        color: #2d3748 !important;
     }
-    .stRadio [data-testid="stRadio"] [aria-checked="true"] + label,
-    .stRadio [data-testid="stRadio"] > div:has(input[aria-checked="true"]) > label {
-        background-color: #1e3a5f;
-        color: white;
+    .stRadio > div[role="radiogroup"] > div[aria-checked="true"] {
+        background-color: #1e3a5f !important;
+        color: white !important;
     }
     /* 隐藏 radio 圆点 */
-    .stRadio [data-testid="stRadio"] input[type="radio"] {
-        display: none;
+    .stRadio input[type="radio"] {
+        display: none !important;
     }
     
     .sidebar {
@@ -1077,10 +1075,6 @@ elif selected_page == "Comprehensive Analysis":
                 lca_calc.load_lci_data(lci_path)
             else:
                 lca_calc.set_lci_parameters(**lci_manual)
-                st.info(f"LCI params (manual): carbon={lca_calc.carbon_cement}, "
-                        f"energy={lca_calc.energy_cement}, "
-                        f"cost_cement={lca_calc.cost_cement}, "
-                        f"cost_water={lca_calc.cost_water}")
             ucs_vals = predictions["Predicted UCS"].values
             _mc  = (cement_df_for_lca["MC"].values
                     if "MC" in cement_df_for_lca.columns
@@ -1161,21 +1155,16 @@ elif selected_page == "Comprehensive Analysis":
 
         st.subheader("🏆 Analysis Results")
 
-        # 1) 模型性能
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📊 Model Performance")
-        if is_manual:
-            st.info("Model training skipped in Manual Input mode — R²/MSE not applicable.")
-            c1, c2 = st.columns(2)
-            c1.metric("R² Score", "N/A")
-            c2.metric("MSE", "N/A")
-        else:
+        # 1) 模型性能（仅 File Upload 模式显示）
+        if not is_manual:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("📊 Model Performance")
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("R² Score", f"{metrics['r2']:.2f}")
             c2.metric("MSE",      f"{metrics['mse']:.2f}")
             c3.metric("Training Samples", st.session_state.comp_train_samples)
             c4.metric("Test Samples",     st.session_state.comp_test_samples)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # 2) 强度预测
         st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -1192,25 +1181,73 @@ elif selected_page == "Comprehensive Analysis":
         # 3) LCA 结果
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("🌍 LCA Results")
-        st.dataframe(lca_results, use_container_width=True)
 
-        st.subheader("📊 LCA Indicator Visualization")
         if not lca_results.empty:
-            fig, ax = plt.subplots(figsize=(10, 6))
-            lca_results.plot(kind="bar", ax=ax)
-            plt.xticks(rotation=45)
-            plt.title("Environmental Impact Comparison")
-            plt.tight_layout()
-            st.pyplot(fig)
+            # ---- 关键指标数值卡片 ----
+            st.subheader("📊 Key Indicators")
+            col_lca1, col_lca2, col_lca3, col_lca4, col_lca5 = st.columns(5)
 
-        st.subheader("🌱 Environmental Impact Assessment")
-        if not lca_results.empty:
+            def _safe_stat(col, fn):
+                return float(fn(lca_results[col])) if col in lca_results.columns else 0.0
+
+            col_lca1.metric(
+                "Total Carbon",
+                f"{_safe_stat('total_carbon_kgCO2', 'mean'):.2f} kg CO₂",
+                help="平均总碳足迹",
+            )
+            col_lca2.metric(
+                "Total Energy",
+                f"{_safe_stat('total_energy_kWh', 'mean'):.2f} kWh",
+                help="平均总能耗",
+            )
+            col_lca3.metric(
+                "Carbon per MPa",
+                f"{_safe_stat('carbon_per_MPa', 'mean'):.2f}",
+                help="单位强度碳足迹 (kg CO₂/MPa)",
+            )
+            col_lca4.metric(
+                "Energy per MPa",
+                f"{_safe_stat('energy_per_MPa', 'mean'):.2f}",
+                help="单位强度能耗 (kWh/MPa)",
+            )
+            col_lca5.metric(
+                "Total Cost",
+                f"{_safe_stat('total_cost_USD', 'mean'):.4f} $",
+                help="平均总成本",
+            )
+
+            # ---- 详细数据表 ----
+            with st.expander("查看详细数据表", expanded=False):
+                st.dataframe(lca_results, use_container_width=True)
+
+            # ---- 可视化（只取数值列）----
+            st.subheader("📊 LCA Indicator Visualization")
+            numeric_cols = lca_results.select_dtypes(include=[np.number]).columns.tolist()
+            # 排除 ID/index 类列
+            plot_cols = [c for c in numeric_cols
+                         if not c.lower().startswith('unnamed')
+                         and lca_results[c].nunique() > 1]
+            if plot_cols:
+                fig, ax = plt.subplots(figsize=(10, 5))
+                lca_results[plot_cols].plot(kind="bar", ax=ax)
+                plt.xticks(rotation=45, ha="right")
+                plt.title("Environmental Impact Comparison")
+                ax.set_ylabel("Value")
+                plt.legend(loc="upper right", fontsize=8)
+                plt.tight_layout()
+                st.pyplot(fig)
+                plt.close(fig)
+
+            # ---- 环境影响评价 ----
+            st.subheader("🌱 Environmental Impact Assessment")
             if avg_impact < 60:
-                st.markdown("✅ Low environmental impact")
+                st.markdown("✅ **Low** environmental impact (avg per MPa: {:.2f})".format(avg_impact))
             elif avg_impact < 200:
-                st.markdown("⚠️ Medium environmental impact")
+                st.markdown("⚠️ **Medium** environmental impact (avg per MPa: {:.2f})".format(avg_impact))
             else:
-                st.markdown("❌ High environmental impact")
+                st.markdown("❌ **High** environmental impact (avg per MPa: {:.2f})".format(avg_impact))
+        else:
+            st.warning("LCA 计算结果为空，无法展示。")
         st.markdown('</div>', unsafe_allow_html=True)
 
         # 4) 综合评价
