@@ -1220,13 +1220,11 @@ elif selected_page == "Comprehensive Analysis":
             with st.expander("查看详细数据表", expanded=False):
                 st.dataframe(lca_results, use_container_width=True)
 
-            # ---- 可视化（只取数值列）----
+            # ---- 可视化（取数值列，单条数据也显示）----
             st.subheader("📊 LCA Indicator Visualization")
             numeric_cols = lca_results.select_dtypes(include=[np.number]).columns.tolist()
-            # 排除 ID/index 类列
             plot_cols = [c for c in numeric_cols
-                         if not c.lower().startswith('unnamed')
-                         and lca_results[c].nunique() > 1]
+                         if not c.lower().startswith('unnamed')]
             if plot_cols:
                 fig, ax = plt.subplots(figsize=(10, 5))
                 lca_results[plot_cols].plot(kind="bar", ax=ax)
@@ -1237,15 +1235,6 @@ elif selected_page == "Comprehensive Analysis":
                 plt.tight_layout()
                 st.pyplot(fig)
                 plt.close(fig)
-
-            # ---- 环境影响评价 ----
-            st.subheader("🌱 Environmental Impact Assessment")
-            if avg_impact < 60:
-                st.markdown("✅ **Low** environmental impact (avg per MPa: {:.2f})".format(avg_impact))
-            elif avg_impact < 200:
-                st.markdown("⚠️ **Medium** environmental impact (avg per MPa: {:.2f})".format(avg_impact))
-            else:
-                st.markdown("❌ **High** environmental impact (avg per MPa: {:.2f})".format(avg_impact))
         else:
             st.warning("LCA 计算结果为空，无法展示。")
         st.markdown('</div>', unsafe_allow_html=True)
