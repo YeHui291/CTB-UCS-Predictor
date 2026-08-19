@@ -527,9 +527,9 @@ elif selected_page == "Model Training":
             with col2:
                 st.metric("MSE", f"{metrics['mse']:.2f}")
             with col3:
-                st.metric("Training Samples", f"{int(len(edited_df) * (1 - test_size))}")
+                st.metric("Training Samples", f"{int(len(working_df) * (1 - test_size))}")
             with col4:
-                st.metric("Test Samples", f"{int(len(edited_df) * test_size)}")
+                st.metric("Test Samples", f"{int(len(working_df) * test_size)}")
             
             # Model performance assessment
             if metrics['r2'] > 0.8:
